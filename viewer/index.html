@@ -1,0 +1,154 @@
+<!doctype html5>
+<html lang="en">
+
+<head>
+    <title>SlideCrafter</title>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"
+        integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+
+    <script type="text/javascript" src="../dist/files.js"></script>
+
+    <script>
+        var isTimeoutSet = false;
+
+        function startTimer() {
+            if (document.getElementById('activateUpdate').checked) {
+                if (!isTimeoutSet) {
+                    setTimeout(() => {
+                        isTimeoutSet = false;
+                        if (document.getElementById('activateUpdate').checked) {
+                            moveToPage(0);
+                        }
+                    }, 10 * 1000);
+                    isTimeoutSet = true;
+                }
+            }
+        }
+        function init() {
+            // get pdfName
+            var pdfName = location.href.split('pdfName=');
+            if (pdfName.length == 2) {
+                pdfName = pdfName[1].split('&')[0];
+            } else {
+                pdfName = window.localStorage.getItem("slideURL");
+                if(!pdfName){
+                    pdfName = "";
+                }
+            }
+            document.getElementById('pdfName').value = pdfName;
+
+            // get number
+            document.getElementById('pageControl').value = Math.max(1, parseInt(window.localStorage.getItem("slideNr")) || 1);
+
+            // get files
+            var dataList = document.getElementById('filesDataList');
+            errorText = "";
+            if(typeof files !== 'undefined') {
+                // files defined in files.js        
+                files.forEach(item => {
+                    var option = document.createElement('option');
+                    option.value = item;
+                    dataList.appendChild(option);
+                });
+            } else {
+                errorText = "file list could not be loaded <a href='#'>refresh</a>";
+            }
+            document.getElementById('errorText').innerHTML = errorText;
+
+            // visit page
+            moveToPage(0);
+        }
+
+        function moveToPage(delta) {
+            // get page nr and update store
+            var page = document.getElementById('pageControl');
+            var pageNumber = Math.max(1, parseInt(page.value) || 1) + delta;
+            page.value = pageNumber;
+            window.localStorage.setItem("slideNr", pageNumber);
+
+            // reset iframe
+            const vw = Math.max(document.documentElement.clientWidth || 0, window.innerWidth || 0);
+            const vh = Math.max(document.documentElement.clientHeight || 0, window.innerHeight || 0);
+            var view = document.getElementById('pdfpage');
+            view.style.width = vw * 0.8;
+            view.style.height = (vw * 0.8) / 16 * 9;
+            view.style.marginLeft = '10%';
+            view.src = 'about:blank';
+
+            // pdfName handling and visit page
+            var pdfName = document.getElementById('pdfName').value;
+            if (pdfName && pdfName != '') {
+                window.localStorage.setItem("slideURL", pdfName);
+                setTimeout(() => view.src = pdfName + '#pagemode=none&toolbar=0&statusbar=0&messages=0&navpanes=0&scrollbar=0&view=Fit&page=' + pageNumber, 10);
+            }
+
+            // starts timer if necessary
+            startTimer();
+        }
+    </script>
+    <style>
+        html,
+        body {
+            height: 100%;
+        }
+
+        iframe {
+            overflow: hidden;
+        }
+
+        .menu {
+            margin-top: 20px;
+            width: 100%;
+            text-align: center;
+        }
+
+        #pdfName {
+            margin-top: -8px;
+            width: 600px;
+        }
+
+        #errorText {
+            color:red;
+        }
+    </style>
+</head>
+
+<body onload="init()">
+    <iframe src="about:blank" id="pdfpage"></iframe>
+    <form onsubmit="moveToPage(0); return false;">
+        <div class="menu">
+            <button onclick="moveToPage(-1)">&lt;</button>
+            <input type="number" value="" min="1" id="pageControl" />
+            <button onclick="moveToPage(0)">goto</button>
+            <button onclick="moveToPage(1)">&gt;</button>
+            <input type="checkbox" id="activateUpdate" onclick="moveToPage(0)" checked="checked"> reload every 10 sec
+        </div>
+        <div class="menu">
+            <input type="text" id="pdfName" list="filesDataList" />
+            <datalist id="filesDataList"></datalist>
+        </div>
+        <div class="menu" id="errorText"></div>
+    </form>
+
+    <!-- Optional JavaScript -->
+
+    <!-- jQuery first, then Popper.js, then Bootstrap JS -->
+    <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"
+        integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo"
+        crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"
+        integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1"
+        crossorigin="anonymous"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"
+        integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM"
+        crossorigin="anonymous"></script>
+
+
+</body>
+
+</html>
