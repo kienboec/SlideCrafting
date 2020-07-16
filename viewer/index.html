@@ -15,7 +15,8 @@
 
     <script>
         var isTimeoutSet = false;
-
+        var isInited = false;
+        
         function startTimer() {
             if (document.getElementById('activateUpdate').checked) {
                 if (!isTimeoutSet) {
@@ -61,6 +62,7 @@
             document.getElementById('errorText').innerHTML = errorText;
 
             // visit page
+            isInited = true;
             moveToPage(0);
         }
 
@@ -118,7 +120,7 @@
     </style>
 </head>
 
-<body onload="init()">
+<body onload="init()" onresize="moveToPage(0)">
     <iframe src="about:blank" id="pdfpage"></iframe>
     <form onsubmit="moveToPage(0); return false;">
         <div class="menu">
