@@ -1,4 +1,4 @@
-<!doctype html5>
+<!doctype html>
 <html lang="en">
 
 <head>
@@ -13,10 +13,28 @@
 
     <script type="text/javascript" src="../dist/files.js"></script>
 
+    <!--
+        pdf view based on tutorial: 
+            https://pspdfkit.com/blog/2019/implement-pdf-viewer-pdf-js/
+            https://codesandbox.io/s/pmy914l2kq?file=/index.html
+        and:
+            https://usefulangle.com/post/20/pdfjs-tutorial-1-preview-pdf-during-upload-wih-next-prev-buttons
+        and:
+            https://pspdfkit.com/blog/2018/render-pdfs-in-the-browser-with-pdf-js/
+    -->
+    <script src="https://unpkg.com/pdfjs-dist@2.0.489/build/pdf.min.js"></script>
+
     <script>
+        let currentPageIndex = 0;
+        let pageMode = 1;
+        let cursorIndex = Math.floor(currentPageIndex / pageMode);
+        let pdfInstance = null;
+        let totalPagesCount = 0;
+        let viewport = null;
+
         var isTimeoutSet = false;
         var isInited = false;
-        
+
         function startTimer() {
             if (document.getElementById('activateUpdate').checked) {
                 if (!isTimeoutSet) {
@@ -31,25 +49,30 @@
             }
         }
         function init() {
+            // load viewport
+            viewport = document.getElementById("viewport");
+
             // get pdfName
             var pdfName = location.href.split('pdfName=');
             if (pdfName.length == 2) {
                 pdfName = pdfName[1].split('&')[0];
             } else {
                 pdfName = window.localStorage.getItem("slideURL");
-                if(!pdfName){
+                if (!pdfName) {
                     pdfName = "";
                 }
             }
             document.getElementById('pdfName').value = pdfName;
 
             // get number
-            document.getElementById('pageControl').value = Math.max(1, parseInt(window.localStorage.getItem("slideNr")) || 1);
+            var pageNumber = Math.max(1, parseInt(window.localStorage.getItem("slideNr")) || 1);
+            document.getElementById('pageControl').value = pageNumber;
+            currentPageIndex = pageNumber - 1;
 
             // get files
             var dataList = document.getElementById('filesDataList');
             errorText = "";
-            if(typeof files !== 'undefined') {
+            if (typeof files !== 'undefined') {
                 // files defined in files.js        
                 files.forEach(item => {
                     var option = document.createElement('option');
@@ -73,69 +96,243 @@
             page.value = pageNumber;
             window.localStorage.setItem("slideNr", pageNumber);
 
-            // reset iframe
-            const vw = Math.max(document.documentElement.clientWidth || 0, window.innerWidth || 0);
-            const vh = Math.max(document.documentElement.clientHeight || 0, window.innerHeight || 0);
-            var view = document.getElementById('pdfpage');
-            view.style.width = vw * 0.8;
-            view.style.height = (vw * 0.8) / 16 * 9;
-            view.style.marginLeft = '10%';
-            view.src = 'about:blank';
-
             // pdfName handling and visit page
             var pdfName = document.getElementById('pdfName').value;
+            window.localStorage.setItem("slideURL", pdfName);
             if (pdfName && pdfName != '') {
-                window.localStorage.setItem("slideURL", pdfName);
-                setTimeout(() => view.src = pdfName + '#pagemode=none&toolbar=0&statusbar=0&messages=0&navpanes=0&scrollbar=0&view=Fit&page=' + pageNumber, 10);
+                pdfjsLib.getDocument(pdfName).then(pdf => {
+                    pdfInstance = pdf;
+                    totalPagesCount = pdf.numPages;
+                    document.getElementById('totalPages').innerText = totalPagesCount;
+                    document.querySelector("#page-mode input").value = 1;
+                    currentPageIndex = Math.min(totalPagesCount - 1, Math.max(0, pageNumber - 1));
+                    initPager();
+                    initPageMode();
+                    render();
+                });
             }
 
             // starts timer if necessary
             startTimer();
+        }
+
+        function onPagerButtonsClick(event) {
+            event.preventDefault();
+            const action = event.target.getAttribute("data-pager");
+            if (action === "prev") {
+                if (currentPageIndex === 0) {
+                    return;
+                }
+                currentPageIndex -= pageMode;
+                if (currentPageIndex < 0) {
+                    currentPageIndex = 0;
+                }
+                render();
+                document.getElementById('pageControl').value = currentPageIndex + 1;
+            }
+            if (action === "next") {
+                if (currentPageIndex === totalPagesCount - 1) {
+                    return;
+                }
+                currentPageIndex += pageMode;
+                if (currentPageIndex > totalPagesCount - 1) {
+                    currentPageIndex = totalPagesCount - 1;
+                }
+                render();
+                document.getElementById('pageControl').value = currentPageIndex + 1;
+            }
+            return false;
+        }
+        function initPager() {
+            const pager = document.querySelector("#pager");
+            pager.addEventListener("click", onPagerButtonsClick);
+            return () => {
+                pager.removeEventListener("click", onPagerButtonsClick);
+            };
+        }
+
+        function onPageModeChange(event) {
+            pageMode = Number(event.target.value);
+            render();
+        }
+        function initPageMode() {
+            const input = document.querySelector("#page-mode input");
+            input.setAttribute("max", totalPagesCount);
+            input.addEventListener("change", onPageModeChange);
+            return () => {
+                input.removeEventListener("change", onPageModeChange);
+            };
+        }
+
+        function render() {
+            cursorIndex = Math.floor(currentPageIndex / pageMode);
+            const startPageIndex = cursorIndex * pageMode;
+            const endPageIndex =
+                startPageIndex + pageMode < totalPagesCount
+                    ? startPageIndex + pageMode - 1
+                    : totalPagesCount - 1;
+
+            const renderPagesPromises = [];
+            for (let i = startPageIndex; i <= endPageIndex; i++) {
+                renderPagesPromises.push(pdfInstance.getPage(i + 1));
+            }
+
+            Promise.all(renderPagesPromises).then(pages => {
+                const pagesHTML = `<div style="width: ${
+                    pageMode > 1 ? "50%" : "100%"
+                    }"><canvas></canvas></div>`.repeat(pages.length);
+                viewport.innerHTML = pagesHTML;
+                pages.forEach(renderPage);
+            });
+        }
+
+        function renderPage(page) {
+            let pdfViewport = page.getViewport(1);
+
+            const container = viewport.children[page.pageIndex - cursorIndex * pageMode];
+            pdfViewport = page.getViewport(container.offsetWidth / pdfViewport.width);
+            const canvas = container.children[0];
+            const context = canvas.getContext("2d");
+            canvas.height = pdfViewport.height;
+            canvas.width = pdfViewport.width;
+
+            page.render({
+                canvasContext: context,
+                viewport: pdfViewport
+            });
         }
     </script>
     <style>
         html,
         body {
             height: 100%;
+            margin: 0;
+            font-family: sans-serif;
+            font-size: 0.9rem;
         }
 
-        iframe {
-            overflow: hidden;
+        #app {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
         }
 
-        .menu {
-            margin-top: 20px;
-            width: 100%;
+        #toolbar {
+            display: flex;
+            align-items: center;
+            background-color: #555;
+            color: #fff;
+            padding: 5px;
+        }
+
+        #toolbar button,
+        #toolbar input,
+        #page-mode input {
+            color: currentColor;
+            background-color: transparent;
+            font: inherit;
+            border: 1px solid currentColor;
+            border-radius: 3px;
+        }
+
+        #toolbar button:hover,
+        #toolbar button:focus,
+        #toolbar input:hover,
+        #toolbar input:focus,
+        #page-mode input:hover,
+        #page-mode input:focus {
+            color: lightGreen;
+        }
+
+        #page-mode {
+            display: flex;
+            align-items: center;
+            padding: 0.25em 0.5em;
+        }
+
+        #viewport-container {
+            flex: 1;
+            background: #eee;
+            overflow: auto;
+        }
+
+        #viewport {
+            width: 90%;
+            margin: 0 auto;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        #viewport>div {
             text-align: center;
+            max-width: 100%;
         }
 
-        #pdfName {
-            margin-top: -8px;
-            width: 600px;
+        #viewport canvas {
+            width: 100%;
+            box-shadow: 0 2px 5px gray;
         }
 
         #errorText {
-            color:red;
+            color: red;
+        }
+
+        #toolbar>div {
+            padding-right: 20px;
+        }
+
+        #pageControl {
+            text-align: right;
+            width: 70px;
+        }
+
+        label {
+            margin: 0px;
+        }
+
+        #pdfName {
+            width: 300px;
+        }
+
+        #fileNameSelection {
+            flex: auto;
         }
     </style>
 </head>
 
-<body onload="init()" onresize="moveToPage(0)">
-    <iframe src="about:blank" id="pdfpage"></iframe>
-    <form onsubmit="moveToPage(0); return false;">
-        <div class="menu">
-            <button onclick="moveToPage(-1)">&lt;</button>
-            <input type="number" value="" min="1" id="pageControl" />
-            <button onclick="moveToPage(0)">goto</button>
-            <button onclick="moveToPage(1)">&gt;</button>
-            <input type="checkbox" id="activateUpdate" onclick="moveToPage(0)" checked="checked"> reload every 10 sec
+<body onload="init()">
+    <div id="app">
+        <div role="toolbar" id="toolbar">
+            
+                <div id="pager">
+                    <form onsubmit="moveToPage(0); return false">
+                        <button data-pager="prev">&lt;</button>
+                        <input type="number" value="" min="1" id="pageControl" /> of <label id="totalPages">0</label>
+                        <button data-pager="next">&gt;</button>
+                    </form>
+                </div>
+                <div id="fileNameSelection">
+                    <form onsubmit="moveToPage(0); return false">
+                        <input type="text" id="pdfName" list="filesDataList" />
+                        <datalist id="filesDataList"></datalist>
+                        <button onclick="moveToPage(0)">goto</button>
+                    </form>
+                </div>
+                <div>
+                    <input type="checkbox" id="activateUpdate" name="activateUpdate" onclick="moveToPage(0)">
+                    <label for="activateUpdate">reload every 10 sec</label>
+                </div>
+                <div id="page-mode">
+                    <label>Page Mode <input type="number" value="1" min="1" /></label>
+                </div>
+                <div id="errorText"></div>
+            
         </div>
-        <div class="menu">
-            <input type="text" id="pdfName" list="filesDataList" />
-            <datalist id="filesDataList"></datalist>
+        <div id="viewport-container">
+            <div role="main" id="viewport"></div>
         </div>
-        <div class="menu" id="errorText"></div>
-    </form>
+    </div>
 
     <!-- Optional JavaScript -->
 

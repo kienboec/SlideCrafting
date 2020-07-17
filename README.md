@@ -30,3 +30,6 @@ docker run --rm -ti --privileged -v %BASEFOLDER%/KnowledgeBase:/miktex/work/src:
 * Editor: https://github.com/zettlr/zettlr
 * Presenter: https://github.com/Cimbali/pympress/
 
+## Icons
+* Viewer-favicon: https://www.iconfinder.com/icons/272699/pdf_icon
+* General ico: https://www.iconfinder.com/icons/2527990/analytics_business_chart_display_media_presentation_projector_icon
