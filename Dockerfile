@@ -44,7 +44,8 @@ RUN mkdir /pandoc && \
     mv pandoc-2.10-1-amd64.deb /pandoc && \
     apt install /pandoc/pandoc-2.10-1-amd64.deb
 
-RUN pip3 install pandoc-plantuml-filter pyyaml
+RUN pip3 install wheel && \
+    pip3 install pandoc-plantuml-filter pyyaml
 
 RUN mkdir /miktex/work/log && \
     touch /miktex/work/log/pandoc.log && \

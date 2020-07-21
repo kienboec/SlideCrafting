@@ -15,20 +15,27 @@ print("______________________________________________________")
 #########
 # config
 #########
+def checkEnvValueSet(key, value):
+    return key in os.environ and os.environ[key] == value
+
 generationMethods = []
-if("GEN_BEAMER" in os.environ):
+if(checkEnvValueSet("GEN_BEAMER", "1")):
     print("slides requested")
     generationMethods.append("beamer")
 
-if("GEN_BEAMER_NOTES" in os.environ):
+if(checkEnvValueSet("GEN_BEAMER_NOTES", "1")):
     print("slides with notes requested")
     generationMethods.append("beamerN")
 
-if("GEN_HANDOUT" in os.environ):
+if(checkEnvValueSet("GEN_HANDOUT", "1")):
     print("handout requested")
     generationMethods.append("pdf")
 
-if(generationMethods.count == 0):
+if(checkEnvValueSet("GEN_PPTX", "1")):
+    print("powerpoint requested")
+    generationMethods.append("pptx")
+
+if(len(generationMethods) == 0):
     print("no request... fallback slides with notes")
     generationMethods = ["beamerN"]
 
@@ -39,6 +46,7 @@ originFolder = baseDir + "src/"
 workFolder = baseDir + "tmp/"
 distFolder = baseDir + "dist/"
 logFolder = baseDir + "log/"
+pptxReference = originFolder + "_templates/pptx/fhtw_reference.pptx"
 beamerTemplate = originFolder + "_templates/tex/latex/beamer/" # only 1 beamer theme file in the folder supported!
 configFile = baseDir + ".slidecrafting.config"
 indexFilesExtension = ".meta.yml"
@@ -182,8 +190,10 @@ for fileName in topicsDict.keys():
                      "-o", distFolder + projectName + "_slides_notes.pdf", "--slide-level=3"],
 
         "pdf":      [pandocApp] + topicsDict[fileName] + [pandocMetadataArg] + pandocArgs + 
-                    ["--to=pdf", "--pdf-engine=" + pdflatexApp, "-o", distFolder + projectName + "_index.pdf"]
+                    ["--to=pdf", "--pdf-engine=" + pdflatexApp, "-o", distFolder + projectName + "_index.pdf"],
 
+        "pptx":     [pandocApp] + topicsDict[fileName] + [pandocMetadataArg] + pandocArgs + 
+                    ["--to=pptx", "--reference-doc=" + pptxReference,"-o", distFolder + projectName + "_slides.pptx"]
     }
     
     for mode in projectArgs.keys():
