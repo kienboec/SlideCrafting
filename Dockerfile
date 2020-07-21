@@ -51,11 +51,13 @@ RUN mkdir /miktex/work/log && \
     touch /miktex/work/log/pandoc.log && \
     mkdir /miktex/work/slideCrafting/
 
-ADD SlideCrafting\* /miktex/work/slideCrafting/
+ADD * /miktex/work/slideCrafting/
 
 RUN ln -s /miktex/work/slideCrafting/run.sh /miktex/work/run.sh && \
     ln -s /miktex/work/slideCrafting/watch.sh /miktex/work/watch.sh && \
+    ln -s /miktex/work/slideCrafting/slideCrafting.sh /miktex/work/slideCrafting.sh && \
     chmod 0705 /miktex/work/run.sh && \
+    chmod 0705 /miktex/work/slideCrafting.sh && \
     chmod 0705 /miktex/work/slideCrafting/updateTemplate.sh && \
     chmod 0705 /miktex/work/watch.sh
 
@@ -64,4 +66,4 @@ ENV MIKTEX_USERDATA=/miktex/.miktex/texmfs/data
 ENV MIKTEX_USERINSTALL=/miktex/.miktex/texmfs/install
 ENV PLANTUML_BIN="java -jar /miktex/work/slideCrafting/dependencies/plantuml.1.2020.14.jar"
 
-CMD ./run.sh && ./watch.sh
+CMD ./slideCrafting.sh 
