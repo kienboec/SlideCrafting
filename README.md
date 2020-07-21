@@ -23,7 +23,7 @@ docker rm   slidecrafting-instance
 
 @mkdir slidecrafting\dist
 docker build -t slidecrafting-container:latest -f slidecrafting\Dockerfile .
-docker run --rm -ti --privileged -v %BASEFOLDER%/KnowledgeBase:/miktex/work/src:ro -v %BASEFOLDER%/slidecrafting/dist:/miktex/work/dist:rw --name slidecrafting-instance slidecrafting-container
+docker run --rm -ti --privileged -v %BASEFOLDER%/KnowledgeBase:/miktex/work/src:ro -v %BASEFOLDER%/slidecrafting/dist:/miktex/work/dist:rw -p 8080:80/tcp --name slidecrafting-instance slidecrafting-container
 ```
 ## Further Tooling Recommendations
 
