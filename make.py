@@ -20,11 +20,11 @@ def checkEnvValueSet(key, value):
 
 generationMethods = []
 if(checkEnvValueSet("GEN_BEAMER", "1")):
-    print("slides requested")
+    print("beamer-slides requested")
     generationMethods.append("beamer")
 
 if(checkEnvValueSet("GEN_BEAMER_NOTES", "1")):
-    print("slides with notes requested")
+    print("beamer-slides with notes requested")
     generationMethods.append("beamerN")
 
 if(checkEnvValueSet("GEN_HANDOUT", "1")):
@@ -32,8 +32,12 @@ if(checkEnvValueSet("GEN_HANDOUT", "1")):
     generationMethods.append("pdf")
 
 if(checkEnvValueSet("GEN_PPTX", "1")):
-    print("powerpoint requested")
+    print("powerpoint-slides requested")
     generationMethods.append("pptx")
+
+if(checkEnvValueSet("GEN_REVEALJS", "1")):
+    print("reveal.js-slides requested")
+    generationMethods.append("revealjs")
 
 if(len(generationMethods) == 0):
     print("no request... fallback slides with notes")
@@ -51,6 +55,7 @@ beamerTemplate = originFolder + "_templates/tex/latex/beamer/" # only 1 beamer t
 configFile = baseDir + ".slidecrafting.config"
 indexFilesExtension = ".meta.yml"
 templateUpdateScript = "/miktex/work/slideCrafting/updateTemplate.sh"
+viewerHtml = '/miktex/work/slideCrafting/index.html'
 
 ########
 # clean
@@ -79,6 +84,12 @@ if os.path.isdir(workFolder):
     rmdirRecursive(workFolder)
     time.sleep(0.1)
 print("work folder cleaned..." + workFolder)
+
+##########
+# viewer
+##########
+print("copy viewer")
+subprocess.call(["cp", viewerHtml, distFolder + "index.html"])
 
 ###########################################
 # take over data from src to work folder
@@ -193,7 +204,11 @@ for fileName in topicsDict.keys():
                     ["--to=pdf", "--pdf-engine=" + pdflatexApp, "-o", distFolder + projectName + "_index.pdf"],
 
         "pptx":     [pandocApp] + topicsDict[fileName] + [pandocMetadataArg] + pandocArgs + 
-                    ["--to=pptx", "--reference-doc=" + pptxReference,"-o", distFolder + projectName + "_slides.pptx"]
+                    ["--to=pptx", "--reference-doc=" + pptxReference, "-o", distFolder + projectName + "_slides.pptx"],
+        
+        # work in progress
+        "revealjs":   [pandocApp] + topicsDict[fileName] + [pandocMetadataArg] + pandocArgs + 
+                    ["--to=revealjs", "-V", "revealjs-url=https://unpkg.com/reveal.js@4.0.2/", "-o", distFolder + projectName + "_slides.html"]
     }
     
     for mode in projectArgs.keys():
@@ -213,7 +228,7 @@ outputFileNameFile.write("var files = [")
 for outputFileName in outputFileNames:
     if not isFirst:
         outputFileNameFile.write(",\n")
-    outputFileNameFile.write("   \"../dist/" + outputFileName.split("/")[-1] + "\"")
+    outputFileNameFile.write("   \"" + outputFileName.split("/")[-1] + "\"")
     isFirst = False
 
 outputFileNameFile.write("\n]")

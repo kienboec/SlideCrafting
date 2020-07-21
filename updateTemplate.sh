@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash 
 /usr/bin/mpm --update \
     && initexmf --register-root=/miktex/work/src/_templates \
     && mpm --admin --update-db \
