@@ -56,6 +56,7 @@ configFile = baseDir + ".slidecrafting.config"
 indexFilesExtension = ".meta.yml"
 templateUpdateScript = "/miktex/work/slideCrafting/updateTemplate.sh"
 viewerHtml = '/miktex/work/slideCrafting/index.html'
+favicon = '/miktex/work/slideCrafting/favicon.ico'
 
 ########
 # clean
@@ -90,6 +91,7 @@ print("work folder cleaned..." + workFolder)
 ##########
 print("copy viewer")
 subprocess.call(["cp", viewerHtml, distFolder + "index.html"])
+subprocess.call(["cp", favicon, distFolder + "favicon.ico"])
 
 ###########################################
 # take over data from src to work folder
