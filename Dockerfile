@@ -66,6 +66,6 @@ ENV MIKTEX_USERDATA=/miktex/.miktex/texmfs/data
 ENV MIKTEX_USERINSTALL=/miktex/.miktex/texmfs/install
 ENV PLANTUML_BIN="java -jar /miktex/work/slideCrafting/dependencies/plantuml.1.2020.14.jar"
 
-EXPOSE 80/tcp
+EXPOSE 8080/tcp
 
 CMD ./slideCrafting.sh 
