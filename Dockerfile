@@ -51,7 +51,7 @@ RUN mkdir /miktex/work/log && \
     touch /miktex/work/log/pandoc.log && \
     mkdir /miktex/work/slideCrafting/
 
-ADD * /miktex/work/slideCrafting/
+COPY . /miktex/work/slideCrafting/
 
 RUN ln -s /miktex/work/slideCrafting/run.sh /miktex/work/run.sh && \
     ln -s /miktex/work/slideCrafting/watch.sh /miktex/work/watch.sh && \

@@ -55,8 +55,9 @@ beamerTemplate = originFolder + "_templates/tex/latex/beamer/" # only 1 beamer t
 configFile = baseDir + ".slidecrafting.config"
 indexFilesExtension = ".meta.yml"
 templateUpdateScript = "/miktex/work/slideCrafting/updateTemplate.sh"
-viewerHtml = '/miktex/work/slideCrafting/index.html'
-favicon = '/miktex/work/slideCrafting/favicon.ico'
+viewerHtml = '/miktex/work/slideCrafting/viewer/index.html'
+favicon = '/miktex/work/slideCrafting/viewer/favicon.ico'
+attemptsOnError = 3
 
 ########
 # clean
@@ -93,6 +94,36 @@ print("copy viewer")
 subprocess.call(["cp", viewerHtml, distFolder + "index.html"])
 subprocess.call(["cp", favicon, distFolder + "favicon.ico"])
 
+###############
+# pandoc-config
+###############
+# https://pandoc.org/MANUAL.html#exit-codes
+pandocErrors = {
+    "0": "OK",
+    "3": "PandocFailOnWarningError",
+    "4": "PandocAppError",
+    "5": "PandocTemplateError",
+    "6": "PandocOptionError",
+    "21": "PandocUnknownReaderError",
+    "22": "PandocUnknownWriterError",
+    "23": "PandocUnsupportedExtensionError",
+    "31": "PandocEpubSubdirectoryError",
+    "43": "PandocPDFError",
+    "47": "PandocPDFProgramNotFoundError",
+    "61": "PandocHttpError",
+    "62": "PandocShouldNeverHappenError",
+    "63": "PandocSomeError",
+    "64": "PandocParseError",
+    "65": "PandocParsecError",
+    "66": "PandocMakePDFError",
+    "67": "PandocSyntaxMapError",
+    "83": "PandocFilterError",
+    "91": "PandocMacroLoop",
+    "92": "PandocUTF8DecodingError",
+    "93": "PandocIpynbDecodingError",
+    "97": "PandocCouldNotFindDataFileError",
+    "99": "PandocResourceNotFound"
+}
 ###########################################
 # take over data from src to work folder
 ###########################################
@@ -215,18 +246,26 @@ for fileName in topicsDict.keys():
     
     for mode in projectArgs.keys():
         if mode in generationMethods:
-            print ("---------------------------------------------- " + str(datetime.datetime.now()))
-            outputFileName = projectArgs[mode][projectArgs[mode].index('-o')+1]
-            outputFileNames.append(outputFileName)
-            print(mode + ": (file:" + outputFileName + ", version: "+ version[fileName] +")")
-            exitCode = subprocess.call(projectArgs[mode])
-            print ("exit code (https://pandoc.org/MANUAL.html#exit-codes): ", exitCode)
+            exitCode = ""
+            attempt = 1
+            while exitCode != "0" and attempt <= attemptsOnError:
+                print ("---------------------------------------------- start: " + str(datetime.datetime.now()))
+                outputFileName = projectArgs[mode][projectArgs[mode].index('-o')+1]
+                outputFileNames.append(outputFileName)
+                print(mode + ": (file:" + outputFileName + ", version: " + version[fileName] + ", attempt: " + str(attempt) + ")")
+                exitCode = str(subprocess.call(projectArgs[mode]))
+                exitCodeDescription = "error"
+                if exitCode in pandocErrors:
+                    exitCodeDescription = pandocErrors[exitCode]
+                print ("exit code: " + exitCode + " (" + exitCodeDescription + ")")
+                print ("---------------------------------------------- end  : " + str(datetime.datetime.now()))
+                attempt += 1
             
 print("Files created", outputFileNames)
 outputFileNameFile = open(distFolder+"files.js","w")
 isFirst = True
 
-outputFileNameFile.write("var files = [")
+outputFileNameFile.write("var files = [\n")
 for outputFileName in outputFileNames:
     if not isFirst:
         outputFileNameFile.write(",\n")
