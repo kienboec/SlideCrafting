@@ -18,7 +18,10 @@ workFolder = baseDir + "tmp/"
 distFolder = baseDir + "dist/"
 logFolder = baseDir + "log/"
 pandocLogFile = logFolder+"pandoc.log"
-logFile = logFolder + "slideCrafting.log"
+logFileName = "slideCrafting.log"
+serverLogFileName = "access.log"
+logFile = logFolder + logFileName
+serverLogFile = logFolder + serverLogFileName
 pptxReference = originFolder + "_templates/pptx/fhtw_reference.pptx"
 beamerTemplate = originFolder + "_templates/tex/latex/beamer/" # only 1 beamer theme file in the folder supported!
 configFile = baseDir + ".slidecrafting.config"
@@ -108,6 +111,10 @@ if os.path.isdir(workFolder):
     rmdirRecursive(workFolder)
     time.sleep(0.1)
 writeToLog("work folder cleaned..." + workFolder)
+
+subprocess.call(["ln", "-s", logFile, distFolder + logFileName[0:-4] + ".txt"])
+subprocess.call(["ln", "-s", serverLogFile, distFolder + serverLogFileName[0:-4] + ".txt"])
+#subprocess.call(["ln", "-s", baseDir + "node_modules/", workFolder + "node_modules"])
 
 ##########
 # viewer
@@ -222,6 +229,7 @@ pandocArgs = [
     # "--listings", # removes highlighting from source code samples
     "--resource-path=.", # : on linux ; on windows as delimiter
     "--filter", "pandoc-plantuml",
+    # "--filter", "mermaid-filter",
     "-s", # standalone
     "--self-contained",
     "--indented-code-classes=numberLines",
@@ -316,11 +324,12 @@ for fileName in topicsDict.keys():
                     writeToLogAndScreen ("                                               succeeded: " + str(datetime.datetime.now()))
                 attempt += 1
             
-writeToLogAndScreen("Files created: " + ",\n".join(outputFileNames))
-outputFileNameFile = open(distFolder+"files.js","w")
+writeToLogAndScreen("\n\nFiles created: " + ", ".join(outputFileNames))
+writeToScreen("\n\n")
+outputFileNameFile = open(distFolder+"files.json","w")
 isFirst = True
 
-outputFileNameFile.write("var files = [\n")
+outputFileNameFile.write("[\n")
 for outputFileName in outputFileNames:
     if not isFirst:
         outputFileNameFile.write(",\n")
@@ -332,4 +341,6 @@ outputFileNameFile.close()
 
 logFileHandler.close()
 time.sleep(0.1) 
-subprocess.call(["cp", logFile, distFolder + "slideCrafting.log"])
+
+
+# subprocess.call(["cp", logFile, distFolder + "slideCrafting.txt"])

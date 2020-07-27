@@ -25,6 +25,18 @@ docker rm   slidecrafting-instance
 docker build -t slidecrafting-container:latest -f slidecrafting\Dockerfile .
 docker run --rm -ti --privileged -v %BASEFOLDER%/KnowledgeBase:/miktex/work/src:ro -v %BASEFOLDER%/slidecrafting/dist:/miktex/work/dist:rw -p 8080:8080/tcp --name slidecrafting-instance slidecrafting-container
 ```
+
+### Integrated Viewer
+An integrated viewer is exposed on port 8080.
+
+Based on the files.json file generated in the dist folder it allows you to select a pdf to show.
+
+Shortcuts:
+* ctrl + alt + L: shows the generation log
+* ctrl + alt + G: reloads the background data (same as goto button)
+* ctrl + alt + R: activates refreshing
+* Arrow Keys for navigation
+
 ## Further Tooling Recommendations
 
 * Editor: https://github.com/zettlr/zettlr
