@@ -91,30 +91,41 @@ if(len(generationMethods) == 0):
 # - work folder
 
 def rmdirRecursive(directory, removeOnlyContent=False):
+    returnValue = True
     directory = Path(directory)
     for item in directory.iterdir():
-        if item.is_dir():
-            rmdirRecursive(item)
-        else:
-            item.unlink()
+        try:
+            if item.is_dir():
+                if(not rmdirRecursive(item)):
+                    returnValue = False
+            else:
+                item.unlink()
+        except:
+            writeToLogAndScreen(f"item can not be deleted: {str(item)}")
+            returnValue = False
     if(not removeOnlyContent):
         directory.rmdir()
 
+    return returnValue
+
 if os.path.isdir(distFolder):
-    rmdirRecursive(distFolder, True)
+    if (not rmdirRecursive(distFolder, True)):
+        writeToScreen("dist folder cleanup failed: stopped execution")
+        exit()
     time.sleep(0.1) 
 else:
     os.mkdir(distFolder)
 writeToLog("dist folder cleaned..." + distFolder)
 
 if os.path.isdir(workFolder):
-    rmdirRecursive(workFolder)
+    if (not rmdirRecursive(workFolder)):
+        writeToScreen("work folder cleanup failed: stopped execution")
+        exit()
     time.sleep(0.1)
 writeToLog("work folder cleaned..." + workFolder)
 
 subprocess.call(["ln", "-s", logFile, distFolder + logFileName[0:-4] + ".txt"])
 subprocess.call(["ln", "-s", serverLogFile, distFolder + serverLogFileName[0:-4] + ".txt"])
-#subprocess.call(["ln", "-s", baseDir + "node_modules/", workFolder + "node_modules"])
 
 ##########
 # viewer
@@ -341,6 +352,3 @@ outputFileNameFile.close()
 
 logFileHandler.close()
 time.sleep(0.1) 
-
-
-# subprocess.call(["cp", logFile, distFolder + "slideCrafting.txt"])
