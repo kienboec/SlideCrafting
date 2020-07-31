@@ -58,7 +58,7 @@ RUN pip3 install wheel && \
 
 COPY . /miktex/work/slideCrafting/
 
-RUN cd /miktex/work/slideCrafting/webserver && rm -r node_modules && npm install
+RUN cd /miktex/work/slideCrafting/webserver && npm install
 
 RUN ln -s /miktex/work/slideCrafting/run.sh /miktex/work/run.sh && \
     ln -s /miktex/work/slideCrafting/watch.sh /miktex/work/watch.sh && \
