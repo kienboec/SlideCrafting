@@ -84,6 +84,11 @@ if(len(generationMethods) == 0):
     writeToLog("no request... fallback slides with notes")
     generationMethods = ["beamerN"]
 
+filters = []
+if(checkEnvValueSet("FILTER_PLANTUML", "1")):
+    writeToLog("embedded plantuml requested")
+    filters.append("pandoc-plantuml")
+
 ########
 # clean
 ########
@@ -124,8 +129,8 @@ if os.path.isdir(workFolder):
     time.sleep(0.1)
 writeToLog("work folder cleaned..." + workFolder)
 
-subprocess.call(["ln", "-s", logFile, distFolder + logFileName[0:-4] + ".txt"])
-subprocess.call(["ln", "-s", serverLogFile, distFolder + serverLogFileName[0:-4] + ".txt"])
+# subprocess.call(["ln", "-s", logFile, distFolder + logFileName[0:-4] + ".html"])
+# subprocess.call(["ln", "-s", serverLogFile, distFolder + serverLogFileName[0:-4] + ".html"])
 
 ##########
 # viewer
@@ -239,8 +244,7 @@ pandocArgs = [
     "--highlight-style=tango",
     # "--listings", # removes highlighting from source code samples
     "--resource-path=.", # : on linux ; on windows as delimiter
-    "--filter", "pandoc-plantuml",
-    # "--filter", "mermaid-filter",
+    # "--filter", "pandoc-plantuml",
     "-s", # standalone
     "--self-contained",
     "--indented-code-classes=numberLines",
@@ -259,6 +263,11 @@ pandocArgs = [
     #"-V", "lof"  # list of figures
 ]
 
+filterArgs = []
+for f in filters:
+    filterArgs.append("--filter")
+    filterArgs.append(f)
+
 ########
 # build
 ########
@@ -270,22 +279,22 @@ for fileName in topicsDict.keys():
     projectName = fileName[0:-9]
     
     projectArgs = {
-        "beamer":   [pandocApp] + topicsDict[fileName] + [pandocMetadataArg] + pandocArgs + 
+        "beamer":   [pandocApp] + topicsDict[fileName] + [pandocMetadataArg] + pandocArgs + filterArgs +
                     ["--to=beamer"] + themeArgs + ["--pdf-engine=" + pdflatexApp, 
                      "-o", distFolder + projectName + "_slides.pdf", "--slide-level=3"],
 
-        "beamerN":  [pandocApp] + topicsDict[fileName] + [pandocMetadataArg] + pandocArgs + 
+        "beamerN":  [pandocApp] + topicsDict[fileName] + [pandocMetadataArg] + pandocArgs + filterArgs +
                     ["--to=beamer"] + themeArgs + ["-V","beameroption:show notes", "--pdf-engine=" + pdflatexApp, 
                      "-o", distFolder + projectName + "_slides_notes.pdf", "--slide-level=3"],
 
-        "pdf":      [pandocApp] + topicsDict[fileName] + [pandocMetadataArg] + pandocArgs + 
+        "pdf":      [pandocApp] + topicsDict[fileName] + [pandocMetadataArg] + pandocArgs + filterArgs +
                     ["--to=pdf", "--pdf-engine=" + pdflatexApp, "-o", distFolder + projectName + "_index.pdf"],
 
-        "pptx":     [pandocApp] + topicsDict[fileName] + [pandocMetadataArg] + pandocArgs + 
+        "pptx":     [pandocApp] + topicsDict[fileName] + [pandocMetadataArg] + pandocArgs + filterArgs +
                     ["--to=pptx", "--reference-doc=" + pptxReference, "-o", distFolder + projectName + "_slides.pptx"],
         
         # work in progress
-        "revealjs":   [pandocApp] + topicsDict[fileName] + [pandocMetadataArg] + pandocArgs + 
+        "revealjs":   [pandocApp] + topicsDict[fileName] + [pandocMetadataArg] + pandocArgs + filterArgs +
                     ["--to=revealjs", "-V", "revealjs-url=https://unpkg.com/reveal.js@4.0.2/", "-o", distFolder + projectName + "_slides.html"]
     }
     
@@ -308,7 +317,7 @@ for fileName in topicsDict.keys():
                             if first:
                                 writeToLogAndScreen("standard out:")
                                 first=False
-                            writeToLogAndScreen(" -" + patchedLine)
+                            writeToLogAndScreen(" - " + patchedLine)
                     
                 if(len(executionResult.stderr) > 0):
                     first = True
@@ -320,7 +329,9 @@ for fileName in topicsDict.keys():
                             if first:
                                 writeToLogAndScreen("standard error:")
                                 first=False
-                            writeToLogAndScreen(" -" + patchedLine)
+                            writeToLogAndScreen(" - " + patchedLine)
+                            #  -Unfortunately, the package koma-script could not be installed.
+                            # consider not to subtract 1 in attempts if a package could not be installed
                     
 
                 exitCode = str(executionResult.returncode)

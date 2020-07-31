@@ -24,7 +24,8 @@ RUN    apt-get update \
             openjdk-8-jdk \
             inotify-tools \
             nodejs \
-            npm 
+            npm \
+            vim
 
 # MikTex
 RUN apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys D6BC243565B2087BC3F897C9277A7293F59E4889
@@ -56,6 +57,8 @@ RUN pip3 install wheel && \
     pip3 install pandoc-plantuml-filter pyyaml 
 
 COPY . /miktex/work/slideCrafting/
+
+RUN cd /miktex/work/slideCrafting/webserver && rm -r node_modules && npm install
 
 RUN ln -s /miktex/work/slideCrafting/run.sh /miktex/work/run.sh && \
     ln -s /miktex/work/slideCrafting/watch.sh /miktex/work/watch.sh && \

@@ -40,15 +40,30 @@ Shortcuts:
 ## Further Tooling Recommendations
 
 * Editor: https://github.com/zettlr/zettlr
+* VSCode: https://code.visualstudio.com/
 * Presenter: https://github.com/Cimbali/pympress/
 * Table-Generator: https://www.tablesgenerator.com/markdown_tables#
-  
+* Edotor (dot): https://edotor.net/
+* Graphviz: http://graphviz.it/#/
+* Plantuml: https://www.planttext.com/ or https://liveuml.com/
+* Mermaid-js: https://mermaid-js.github.io/mermaid-live-editor
+
 ## Icons
 * Viewer-favicon: https://www.iconfinder.com/icons/272699/pdf_icon
 * General ico: https://www.iconfinder.com/icons/2527990/analytics_business_chart_display_media_presentation_projector_icon
 
 ## Best Practice
-I would recomment to allowframebreaks always.
+
+### AllowFrameBreaks
+I would recomment to define allowframebreaks-setting manually.
 
 Regex to check (VS-Code):
 ```^\s*#((?!allowframebreaks).)*$```
+
+### Make Listings smaller
+in Beamer add header-includes
+```
+  - \usepackage{fvextra}
+  - \DefineVerbatimEnvironment{Highlighting}{Verbatim}{breaklines,commandchars=\\\{\},fontsize=\tiny}
+```
+
