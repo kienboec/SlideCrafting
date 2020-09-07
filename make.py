@@ -186,7 +186,7 @@ writeToLog("work folder filled with source data...")
 topicsDict = {}
 version = {}
 
-for file in os.listdir(workFolder):
+for file in sorted(os.listdir(workFolder)):
     if file.endswith(indexFilesExtension):
         writeToLogAndScreen("index file found: " + file)
         stream = open(workFolder + file, 'r')
@@ -274,7 +274,7 @@ for f in filters:
 os.chdir(workFolder)
 
 outputFileNames = []
-for fileName in topicsDict.keys():
+for fileName in sorted(topicsDict.keys()):
     pandocMetadataArg = "--metadata-file=" + workFolder + str(fileName)
     projectName = fileName[0:-9]
     
