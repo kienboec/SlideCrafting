@@ -25,7 +25,9 @@ RUN    apt-get update \
             inotify-tools \
             nodejs \
             npm \
-            vim
+            vim \
+			graphviz \
+			librsvg2-bin
 
 # MikTex
 RUN apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys D6BC243565B2087BC3F897C9277A7293F59E4889
@@ -57,6 +59,11 @@ RUN pip3 install wheel && \
     pip3 install pandoc-plantuml-filter pyyaml 
 
 COPY . /miktex/work/slideCrafting/
+
+# Patch the installed filter with my additional code
+RUN rm /usr/local/lib/python3.8/dist-packages/pandoc_plantuml_filter.py && \
+	cp /miktex/work/slideCrafting/dependencies/pandoc_plantuml_filter.py /usr/local/lib/python3.8/dist-packages/ && \
+	rm /usr/local/lib/python3.8/dist-packages/__pycache__/pandoc_plantuml_filter.cpython-38.pyc
 
 RUN cd /miktex/work/slideCrafting/webserver && npm install
 
