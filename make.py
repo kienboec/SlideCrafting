@@ -214,7 +214,7 @@ version = {}
 
 def readListFilesRecursive(inputFiles):
     patchedInputFiles = []
-    for fileToCheck in sorted(inputFiles):
+    for fileToCheck in inputFiles:
         if fileToCheck.endswith(listFilesExtension):
             streamLst = open(workFolder + fileToCheck, 'r')
             listFileContent = yaml.load(streamLst, Loader=yaml.FullLoader)    
