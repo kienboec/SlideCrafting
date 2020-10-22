@@ -16,6 +16,7 @@ baseDir = "/miktex/work/"
 originFolder = baseDir + "src/"
 workFolder = baseDir + "tmp/"
 distFolder = baseDir + "dist/"
+archiveFolder = distFolder + "archive/"
 logFolder = baseDir + "log/"
 pandocLogFile = logFolder+"pandoc.log"
 logFileName = "slideCrafting.log"
@@ -26,6 +27,7 @@ pptxReference = originFolder + "_templates/pptx/fhtw_reference.pptx"
 beamerTemplate = originFolder + "_templates/tex/latex/beamer/" # only 1 beamer theme file in the folder supported!
 configFile = baseDir + ".slidecrafting.config"
 indexFilesExtension = ".meta.yml"
+listFilesExtension = ".lst.yaml"
 templateUpdateScript = "/miktex/work/slideCrafting/updateTemplate.sh"
 viewerHtml = '/miktex/work/slideCrafting/viewer/index.html'
 favicon = '/miktex/work/slideCrafting/viewer/favicon.ico'
@@ -95,14 +97,15 @@ if(checkEnvValueSet("FILTER_PLANTUML", "1")):
 # - dist folder
 # - work folder
 
-def rmdirRecursive(directory, removeOnlyContent=False):
+def rmdirExt(directory, removeOnlyContent, filesOnly):
     returnValue = True
     directory = Path(directory)
     for item in directory.iterdir():
         try:
             if item.is_dir():
-                if(not rmdirRecursive(item)):
-                    returnValue = False
+                if not filesOnly:
+                    if(not rmdirExt(item, False, False)):
+                        returnValue = False
             else:
                 item.unlink()
         except:
@@ -113,17 +116,40 @@ def rmdirRecursive(directory, removeOnlyContent=False):
 
     return returnValue
 
+def archiveFiles(directory, archiveFolder):
+    directory = Path(directory)
+    for item in directory.iterdir():
+        try:
+            if not item.is_dir():
+                item.rename(archiveFolder + item.name)
+        except:
+            writeToLogAndScreen(f"item can not be moved: {str(item)}")
+            try:
+                shutil.copy(item.resolve(), archiveFolder + item.name)
+            except:
+                writeToLogAndScreen(f"item can not be copied: {str(item)}")
+                try:
+                    shutil.copy(item.resolve(), archiveFolder + "backup_" + item.name)
+                except:
+                    writeToLogAndScreen(f"item can not be copied: {str(item)}")
+
 if os.path.isdir(distFolder):
-    if (not rmdirRecursive(distFolder, True)):
+    if not os.path.isdir(archiveFolder):
+        os.mkdir(archiveFolder)
+ 
+    archiveFiles(distFolder, archiveFolder)
+
+    if (not rmdirExt(distFolder, True, True)):
         writeToScreen("dist folder cleanup failed: stopped execution")
         exit()
     time.sleep(0.1) 
 else:
     os.mkdir(distFolder)
+    os.mkdir(archiveFolder)
 writeToLog("dist folder cleaned..." + distFolder)
 
 if os.path.isdir(workFolder):
-    if (not rmdirRecursive(workFolder)):
+    if (not rmdirExt(workFolder, False, False)):
         writeToScreen("work folder cleanup failed: stopped execution")
         exit()
     time.sleep(0.1)
@@ -186,13 +212,27 @@ writeToLog("work folder filled with source data...")
 topicsDict = {}
 version = {}
 
+def readListFilesRecursive(inputFiles):
+    patchedInputFiles = []
+    for fileToCheck in sorted(inputFiles):
+        if fileToCheck.endswith(listFilesExtension):
+            streamLst = open(workFolder + fileToCheck, 'r')
+            listFileContent = yaml.load(streamLst, Loader=yaml.FullLoader)    
+            streamLst.close()
+            for fileFromList in readListFilesRecursive(listFileContent['input-files']):
+                patchedInputFiles.append(fileFromList)
+        else:
+            patchedInputFiles.append(fileToCheck)
+
+    return patchedInputFiles
+
 for file in sorted(os.listdir(workFolder)):
     if file.endswith(indexFilesExtension):
         writeToLogAndScreen("index file found: " + file)
         stream = open(workFolder + file, 'r')
         indexFileContent = yaml.load(stream, Loader=yaml.FullLoader)
         version[file] = str(indexFileContent['version'])
-        topicsDict[file] = indexFileContent['input-files']
+        topicsDict[file] = readListFilesRecursive(indexFileContent['input-files'])
         stream.close()
         writeToLog("   files: " + ", ".join(topicsDict[file]))
 
