@@ -80,13 +80,13 @@ ENV MIKTEX_USERDATA=/miktex/.miktex/texmfs/data
 ENV MIKTEX_USERINSTALL=/miktex/.miktex/texmfs/install
 ENV PLANTUML_BIN="java -jar /miktex/work/slideCrafting/dependencies/plantuml.1.2020.14.jar"
 
-RUN echo \# TEST > /tmp/test.md && \
-    pandoc /tmp/test.md \
-        --from=markdown+raw_tex+header_attributes+implicit_header_references+raw_attribute+inline_code_attributes+fancy_lists+line_blocks \
-        --highlight-style=tango --to=beamer -V 'beameroption:show notes' \
-        --pdf-engine=pdflatex -o /tmp/test_slides_notes.pdf && \
-    rm /tmp/test.md && \
-    rm /tmp/test_slides_notes.pdf
+# RUN echo \# TEST > /tmp/test.md && \
+#     pandoc /tmp/test.md \
+#         --from=markdown+raw_tex+header_attributes+implicit_header_references+raw_attribute+inline_code_attributes+fancy_lists+line_blocks \
+#         --highlight-style=tango --to=beamer -V 'beameroption:show notes' \
+#         --pdf-engine=pdflatex -o /tmp/test_slides_notes.pdf && \
+#     rm /tmp/test.md && \
+#     rm /tmp/test_slides_notes.pdf
 
 EXPOSE 8080/tcp
 

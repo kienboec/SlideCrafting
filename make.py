@@ -39,15 +39,37 @@ attemptsOnError = 3
 logFileHandler = open(logFile, 'w')
 
 def writeToLog(text):
-    logFileHandler.write(datetime.datetime.now().strftime("%H:%M:%S") + ": " + text + "\n")
+    logFileHandler.write(datetime.datetime.now().strftime("%H:%M:%S") + ": [INFO] " + text + "\n")
+    logFileHandler.flush()
+
+def writeErrorToLog(text):
+    logFileHandler.write(datetime.datetime.now().strftime("%H:%M:%S") + ": [ERRO] " + text + "\n")
+    logFileHandler.flush()
+
+def writeSuccessToLog(text):
+    logFileHandler.write(datetime.datetime.now().strftime("%H:%M:%S") + ": [SUCC] " + text + "\n")
     logFileHandler.flush()
 
 def writeToScreen(text):
     print(text)
 
+def writeErrorToScreen(text):
+    print('\033[91m' +text+ '\033[0m')
+    
+def writeSuccessToScreen(text):
+    print('\033[92m' +text+ '\033[0m')
+    
 def writeToLogAndScreen(text):
     writeToLog(text)
     writeToScreen(text)
+
+def writeErrorToLogAndScreen(text):
+    writeErrorToLog(text)
+    writeErrorToScreen(text)
+
+def writeSuccessToLogAndScreen(text):
+    writeSuccessToLog(text)
+    writeSuccessToScreen(text)
 
 writeToScreen("\n\n\n\n\n")
 writeToLogAndScreen("______________________________________________________")
@@ -109,7 +131,7 @@ def rmdirExt(directory, removeOnlyContent, filesOnly):
             else:
                 item.unlink()
         except:
-            writeToLogAndScreen(f"item can not be deleted: {str(item)}")
+            writeErrorToLogAndScreen(f"item can not be deleted: {str(item)}")
             returnValue = False
     if(not removeOnlyContent):
         directory.rmdir()
@@ -123,15 +145,15 @@ def archiveFiles(directory, archiveFolder):
             if not item.is_dir():
                 item.rename(archiveFolder + item.name)
         except:
-            writeToLogAndScreen(f"item can not be moved: {str(item)}")
+            writeErrorToLogAndScreen(f"item can not be moved: {str(item)}")
             try:
                 shutil.copy(item.resolve(), archiveFolder + item.name)
             except:
-                writeToLogAndScreen(f"item can not be copied: {str(item)}")
+                writeErrorToLogAndScreen(f"item can not be copied: {str(item)}")
                 try:
                     shutil.copy(item.resolve(), archiveFolder + "backup_" + item.name)
                 except:
-                    writeToLogAndScreen(f"item can not be copied: {str(item)}")
+                    writeErrorToLogAndScreen(f"item can not be copied: {str(item)}")
 
 if os.path.isdir(distFolder):
     if not os.path.isdir(archiveFolder):
@@ -140,7 +162,7 @@ if os.path.isdir(distFolder):
     archiveFiles(distFolder, archiveFolder)
 
     if (not rmdirExt(distFolder, True, True)):
-        writeToScreen("dist folder cleanup failed: stopped execution")
+        writeErrorToLogAndScreen("dist folder cleanup failed: stopped execution")
         exit()
     time.sleep(0.1) 
 else:
@@ -150,7 +172,7 @@ writeToLog("dist folder cleaned..." + distFolder)
 
 if os.path.isdir(workFolder):
     if (not rmdirExt(workFolder, False, False)):
-        writeToScreen("work folder cleanup failed: stopped execution")
+        writeErrorToLogAndScreen("work folder cleanup failed: stopped execution")
         exit()
     time.sleep(0.1)
 writeToLog("work folder cleaned..." + workFolder)
@@ -222,7 +244,10 @@ def readListFilesRecursive(inputFiles):
             for fileFromList in readListFilesRecursive(listFileContent['input-files']):
                 patchedInputFiles.append(fileFromList)
         else:
-            patchedInputFiles.append(fileToCheck)
+            if os.path.isfile(originFolder+fileToCheck):
+                patchedInputFiles.append(fileToCheck)
+            else:
+                writeErrorToLogAndScreen(fileToCheck + ' ... not found')
 
     return patchedInputFiles
 
@@ -314,6 +339,9 @@ for f in filters:
 os.chdir(workFolder)
 
 outputFileNames = []
+
+writeToLogAndScreen("----------------------------------------------")
+writeToLogAndScreen("start: " + str(datetime.datetime.now()))
 for fileName in sorted(topicsDict.keys()):
     pandocMetadataArg = "--metadata-file=" + workFolder + str(fileName)
     projectName = fileName[0:-9]
@@ -339,14 +367,17 @@ for fileName in sorted(topicsDict.keys()):
     }
     
     for mode in projectArgs.keys():
-        if mode in generationMethods:
+        if mode in generationMethods:          
+            if len(generationMethods) > 1:
+                writeToLogAndScreen("----------------------------------------------")
+                writeToLogAndScreen("generation method: " + mode)
+            
             exitCode = ""
             attempt = 1
             while exitCode != "0" and attempt <= attemptsOnError:
-                writeToLogAndScreen ("---------------------------------------------- start    : " + str(datetime.datetime.now()))
+                
                 outputFileName = projectArgs[mode][projectArgs[mode].index('-o')+1]
-                outputFileNames.append(outputFileName)
-                writeToLogAndScreen(mode + ": (file:" + outputFileName + ", version: " + version[fileName] + ", attempt: " + str(attempt) + ")")
+                outputFileNames.append(outputFileName)    
                 executionResult = subprocess.run(projectArgs[mode], stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
                 
                 if(len(executionResult.stdout) > 0):
@@ -363,7 +394,11 @@ for fileName in sorted(topicsDict.keys()):
                     first = True
                     for line in executionResult.stderr.splitlines():
                         # i accept these warnings and remove it from the error output                
-                        patchedLine = line.replace("pdflatex: security risk: running with elevated privileges","").replace("pdflatex: major issue: So far, no MiKTeX administrator has checked for updates.", "").strip()
+                        patchedLine = (line
+                            .replace("pdflatex: security risk: running with elevated privileges","")
+                            .replace("pdflatex: major issue: So far, no MiKTeX administrator has checked for updates.", "")
+                            .replace("Created directory plantuml-images","")
+                            .strip())
                         
                         if len(patchedLine) > 0:
                             if first:
@@ -380,10 +415,20 @@ for fileName in sorted(topicsDict.keys()):
                 if exitCode != "0":
                     if exitCode in pandocErrors:
                         exitCodeDescription = pandocErrors[exitCode]
-                    writeToLogAndScreen ("exit code: " + exitCode + " (" + exitCodeDescription + ")")
-                    writeToLogAndScreen ("                                               failed   : " + str(datetime.datetime.now()))
+                    
+                    if attempt > 1:
+                        writeToLogAndScreen("file:" + outputFileName + ", version: " + version[fileName] + ", attempt: " + str(attempt))
+                    else:
+                        writeToLogAndScreen("file:" + outputFileName + ", version: " + version[fileName])
+                    
+                    writeErrorToLogAndScreen  ("exit code: " + exitCode + " (" + exitCodeDescription + ")")
+                    writeErrorToLogAndScreen  ("failed   : " + str(datetime.datetime.now()))
                 else:
-                    writeToLogAndScreen ("                                               succeeded: " + str(datetime.datetime.now()))
+                    if attempt > 1:
+                        writeSuccessToLogAndScreen("file:" + outputFileName + " succeed, version: " + version[fileName]+ ", attempt: " + str(attempt) + ", at: " + datetime.datetime.now().strftime("%H:%M:%S"))
+                    else:
+                        writeSuccessToLogAndScreen("file:" + outputFileName + " succeed, version: " + version[fileName]+ ", at: " + datetime.datetime.now().strftime("%H:%M:%S"))
+                    
                 attempt += 1
             
 writeToLogAndScreen("\n\nFiles created: " + ", ".join(outputFileNames))

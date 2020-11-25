@@ -1,7 +1,8 @@
 # SlideCrafting
 *Crafting slides in docker.*
 
-The docker container in this repo is only needed to compile markdown files (mounted into the source folder) into pdf using pandoc and latex (miktex, beamer, plantuml).
+The docker container in this repo is only needed to compile markdown files 
+(mounted into the source folder) into pdf using pandoc and latex (miktex, beamer, plantuml).
 
 ## Start
 
@@ -47,18 +48,14 @@ Shortcuts:
 * Graphviz: http://graphviz.it/#/
 * Plantuml: https://www.planttext.com/ or https://liveuml.com/
 * Mermaid-js: https://mermaid-js.github.io/mermaid-live-editor
+* textract (npm): to extract text from pptx
+* https://github.com/jupe/puml2code
 
 ## Icons
 * Viewer-favicon: https://www.iconfinder.com/icons/272699/pdf_icon
 * General ico: https://www.iconfinder.com/icons/2527990/analytics_business_chart_display_media_presentation_projector_icon
 
 ## Best Practice
-
-### AllowFrameBreaks
-I would recomment to define allowframebreaks-setting manually.
-
-Regex to check (VS-Code):
-```^\s*#((?!allowframebreaks).)*$```
 
 ### Make Listings smaller
 in Beamer add header-includes
