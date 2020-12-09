@@ -23,7 +23,8 @@ logFileName = "slideCrafting.log"
 serverLogFileName = "access.log"
 logFile = logFolder + logFileName
 serverLogFile = logFolder + serverLogFileName
-pptxReference = originFolder + "_templates/pptx/fhtw_reference.pptx"
+docxReference = originFolder + "_templates/docx/reference.docx"
+pptxReference = originFolder + "_templates/pptx/reference.pptx"
 beamerTemplate = originFolder + "_templates/tex/latex/beamer/" # only 1 beamer theme file in the folder supported!
 configFile = baseDir + ".slidecrafting.config"
 indexFilesExtension = ".meta.yml"
@@ -104,9 +105,17 @@ if(checkEnvValueSet("GEN_REVEALJS", "1")):
     writeToLog("reveal.js-slides requested")
     generationMethods.append("revealjs")
 
+if(checkEnvValueSet("GEN_EXERCISES", "1")):
+    writeToLog("exercises requested")
+    generationMethods.append("exercises")
+
+if(checkEnvValueSet("GEN_EXERCISES_DOCX", "1")):
+    writeToLog("exercises docx requested")
+    generationMethods.append("exercisesDocx")
+
 if(len(generationMethods) == 0):
     writeToLog("no request... fallback slides with notes")
-    generationMethods = ["beamerN"]
+    generationMethods = ["beamerN", "exercises"]
 
 filters = []
 if(checkEnvValueSet("FILTER_PLANTUML", "1")):
@@ -177,9 +186,6 @@ if os.path.isdir(workFolder):
     time.sleep(0.1)
 writeToLog("work folder cleaned..." + workFolder)
 
-# subprocess.call(["ln", "-s", logFile, distFolder + logFileName[0:-4] + ".html"])
-# subprocess.call(["ln", "-s", serverLogFile, distFolder + serverLogFileName[0:-4] + ".html"])
-
 ##########
 # viewer
 ##########
@@ -232,6 +238,7 @@ writeToLog("work folder filled with source data...")
 # (= projects)
 #######################
 topicsDict = {}
+exercises = {}
 version = {}
 
 def readListFilesRecursive(inputFiles):
@@ -251,17 +258,47 @@ def readListFilesRecursive(inputFiles):
 
     return patchedInputFiles
 
+def readExercisesRecursive(exerciseFiles):
+    patchedInputFiles = []
+    for fileToCheck in exerciseFiles:
+        if fileToCheck.endswith(listFilesExtension):
+            streamLst = open(workFolder + fileToCheck, 'r')
+            listFileContent = yaml.load(streamLst, Loader=yaml.FullLoader)    
+            streamLst.close()
+            for fileFromList in readExercisesRecursive(listFileContent['exercise-files']):
+                patchedInputFiles.append(fileFromList)
+        else:
+            if os.path.isfile(originFolder+fileToCheck):
+                patchedInputFiles.append(fileToCheck)
+            else:
+                writeErrorToLogAndScreen(fileToCheck + ' ... not found')
+
+    return patchedInputFiles
+
 for file in sorted(os.listdir(workFolder)):
     if file.endswith(indexFilesExtension):
         writeToLogAndScreen("index file found: " + file)
         stream = open(workFolder + file, 'r')
         indexFileContent = yaml.load(stream, Loader=yaml.FullLoader)
         version[file] = str(indexFileContent['version'])
-        topicsDict[file] = readListFilesRecursive(indexFileContent['input-files'])
+        
+        if("input-files" in indexFileContent):
+            topicsDict[file] = readListFilesRecursive(indexFileContent['input-files'])
+        else:
+            topicsDict[file] = []
+
+        if("exercise-files" in indexFileContent):
+            exercises[file] = readExercisesRecursive(indexFileContent['exercise-files'])
+        else:
+            exercises[file] = []
         stream.close()
         writeToLog("   files: " + ", ".join(topicsDict[file]))
 
 writeToLog("searching for index files completed")
+###########################################
+# pre processing files in work folder
+###########################################
+# topicsDict -> check images and introduct $$res$$/
 
 ###############
 # build config
@@ -347,24 +384,46 @@ for fileName in sorted(topicsDict.keys()):
     projectName = fileName[0:-9]
     
     projectArgs = {
-        "beamer":   [pandocApp] + topicsDict[fileName] + [pandocMetadataArg] + pandocArgs + filterArgs +
-                    ["--to=beamer"] + themeArgs + ["--pdf-engine=" + pdflatexApp, 
-                     "-o", distFolder + projectName + "_slides.pdf", "--slide-level=3"],
+        "beamer":   [
+                        [pandocApp] + topicsDict[fileName] + [pandocMetadataArg] + pandocArgs + filterArgs +
+                        ["--to=beamer"] + themeArgs + ["--pdf-engine=" + pdflatexApp, 
+                        "-o", distFolder + projectName + "_slides.pdf", "--slide-level=3"]
+                    ],
 
-        "beamerN":  [pandocApp] + topicsDict[fileName] + [pandocMetadataArg] + pandocArgs + filterArgs +
-                    ["--to=beamer"] + themeArgs + ["-V","beameroption:show notes", "--pdf-engine=" + pdflatexApp, 
-                     "-o", distFolder + projectName + "_slides_notes.pdf", "--slide-level=3"],
+        "beamerN":  [
+                        [pandocApp] + topicsDict[fileName] + [pandocMetadataArg] + pandocArgs + filterArgs +
+                        ["--to=beamer"] + themeArgs + ["-V","beameroption:show notes", "--pdf-engine=" + pdflatexApp, 
+                        "-o", distFolder + projectName + "_slides_notes.pdf", "--slide-level=3"]
+                    ],
 
-        "pdf":      [pandocApp] + topicsDict[fileName] + [pandocMetadataArg] + pandocArgs + filterArgs +
-                    ["--to=pdf", "--pdf-engine=" + pdflatexApp, "-o", distFolder + projectName + "_index.pdf"],
+        "pdf":      [
+                        [pandocApp] + topicsDict[fileName] + [pandocMetadataArg] + pandocArgs + filterArgs +
+                        ["--to=pdf", "--pdf-engine=" + pdflatexApp, "-o", distFolder + projectName + "_index.pdf"]
+                    ],
 
-        "pptx":     [pandocApp] + topicsDict[fileName] + [pandocMetadataArg] + pandocArgs + filterArgs +
-                    ["--to=pptx", "--reference-doc=" + pptxReference, "-o", distFolder + projectName + "_slides.pptx"],
+        "pptx":     [
+                        [pandocApp] + topicsDict[fileName] + [pandocMetadataArg] + pandocArgs + filterArgs +
+                        ["--to=pptx", "--reference-doc=" + pptxReference, "-o", distFolder + projectName + "_slides.pptx"]
+                    ],
         
         # work in progress
-        "revealjs":   [pandocApp] + topicsDict[fileName] + [pandocMetadataArg] + pandocArgs + filterArgs +
-                    ["--to=revealjs", "-V", "revealjs-url=https://unpkg.com/reveal.js@4.0.2/", "-o", distFolder + projectName + "_slides.html"]
+        "revealjs": [
+                        [pandocApp] + topicsDict[fileName] + [pandocMetadataArg] + pandocArgs + filterArgs +
+                        ["--to=revealjs", "-V", "revealjs-url=https://unpkg.com/reveal.js@4.0.2/", "-o", distFolder + projectName + "_slides.html"]
+                    ],
+
+        "exercises":  [],
+        "exercisesDocx": []
     }
+
+    for exercise in exercises[fileName]:
+        exerciseName = exercise.split('.')[0].split('/')[-1]
+        projectArgs["exercises"].append(
+            [pandocApp] + [exercise] + filterArgs + 
+            ["--to=pdf", "--pdf-engine=" + pdflatexApp, "-o", distFolder + exerciseName + "_exercise.pdf"])
+        projectArgs["exercisesDocx"].append(
+            [pandocApp] + [exercise] + filterArgs + 
+            ["--to=docx", "--reference-doc=" + docxReference, "-o", distFolder + exerciseName + "_exercise.docx"])
     
     for mode in projectArgs.keys():
         if mode in generationMethods:          
@@ -372,64 +431,65 @@ for fileName in sorted(topicsDict.keys()):
                 writeToLogAndScreen("----------------------------------------------")
                 writeToLogAndScreen("generation method: " + mode)
             
-            exitCode = ""
-            attempt = 1
-            while exitCode != "0" and attempt <= attemptsOnError:
-                
-                outputFileName = projectArgs[mode][projectArgs[mode].index('-o')+1]
-                outputFileNames.append(outputFileName)    
-                executionResult = subprocess.run(projectArgs[mode], stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
-                
-                if(len(executionResult.stdout) > 0):
-                    first = True
-                    for line in executionResult.stdout.splitlines():
-                        patchedLine = line.strip()
-                        if len(patchedLine) > 0:
-                            if first:
-                                writeToLogAndScreen("standard out:")
-                                first=False
-                            writeToLogAndScreen(" - " + patchedLine)
+            for commandArrOfGenMode in projectArgs[mode]:
+                exitCode = ""
+                attempt = 1
+                while exitCode != "0" and attempt <= attemptsOnError:
+                    outputFileName = commandArrOfGenMode[commandArrOfGenMode.index('-o')+1]
+                    outputFileNames.append(outputFileName)    
+                    executionResult = subprocess.run(commandArrOfGenMode, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
                     
-                if(len(executionResult.stderr) > 0):
-                    first = True
-                    for line in executionResult.stderr.splitlines():
-                        # i accept these warnings and remove it from the error output                
-                        patchedLine = (line
-                            .replace("pdflatex: security risk: running with elevated privileges","")
-                            .replace("pdflatex: major issue: So far, no MiKTeX administrator has checked for updates.", "")
-                            .replace("Created directory plantuml-images","")
-                            .strip())
+                    if(len(executionResult.stdout) > 0):
+                        first = True
+                        for line in executionResult.stdout.splitlines():
+                            patchedLine = line.strip()
+                            if len(patchedLine) > 0:
+                                if first:
+                                    writeToLogAndScreen("standard out:")
+                                    first=False
+                                writeToLogAndScreen(" - " + patchedLine)
                         
-                        if len(patchedLine) > 0:
-                            if first:
-                                writeToLogAndScreen("standard error:")
-                                first=False
-                            writeToLogAndScreen(" - " + patchedLine)
-                            #  -Unfortunately, the package koma-script could not be installed.
-                            # consider not to subtract 1 in attempts if a package could not be installed
-                    
+                    if(len(executionResult.stderr) > 0):
+                        first = True
+                        for line in executionResult.stderr.splitlines():
+                            # i accept these warnings and remove it from the error output                
+                            patchedLine = (line
+                                .replace("pdflatex: security risk: running with elevated privileges","")
+                                .replace("pdflatex: major issue: So far, no MiKTeX administrator has checked for updates.", "")
+                                .replace("Created directory plantuml-images","")
+                                .strip())
+                            
+                            if len(patchedLine) > 0:
+                                if first:
+                                    writeToLogAndScreen("standard error:")
+                                    first=False
+                                writeToLogAndScreen(" - " + patchedLine)
+                                #  -Unfortunately, the package koma-script could not be installed.
+                                # consider not to subtract 1 in attempts if a package could not be installed
+                        
 
-                exitCode = str(executionResult.returncode)
-                exitCodeDescription = "error"
-                
-                if exitCode != "0":
-                    if exitCode in pandocErrors:
-                        exitCodeDescription = pandocErrors[exitCode]
+                    exitCode = str(executionResult.returncode)
+                    exitCodeDescription = "error"
                     
-                    if attempt > 1:
-                        writeToLogAndScreen("file:" + outputFileName + ", version: " + version[fileName] + ", attempt: " + str(attempt))
+                    if exitCode != "0":
+                        if exitCode in pandocErrors:
+                            exitCodeDescription = pandocErrors[exitCode]
+                        
+                        if attempt > 1:
+                            writeToLogAndScreen("file:" + outputFileName + ", version: " + version[fileName] + ", attempt: " + str(attempt))
+                        else:
+                            writeToLogAndScreen("file:" + outputFileName + ", version: " + version[fileName])
+                        
+                        writeErrorToLogAndScreen  ("exit code: " + exitCode + " (" + exitCodeDescription + ")")
+                        writeErrorToLogAndScreen  ("failed   : " + str(datetime.datetime.now()))
                     else:
-                        writeToLogAndScreen("file:" + outputFileName + ", version: " + version[fileName])
-                    
-                    writeErrorToLogAndScreen  ("exit code: " + exitCode + " (" + exitCodeDescription + ")")
-                    writeErrorToLogAndScreen  ("failed   : " + str(datetime.datetime.now()))
-                else:
-                    if attempt > 1:
-                        writeSuccessToLogAndScreen("file:" + outputFileName + " succeed, version: " + version[fileName]+ ", attempt: " + str(attempt) + ", at: " + datetime.datetime.now().strftime("%H:%M:%S"))
-                    else:
-                        writeSuccessToLogAndScreen("file:" + outputFileName + " succeed, version: " + version[fileName]+ ", at: " + datetime.datetime.now().strftime("%H:%M:%S"))
-                    
-                attempt += 1
+                        if attempt > 1:
+                            writeSuccessToLogAndScreen("file:" + outputFileName + " succeed, version: " + version[fileName]+ ", attempt: " + str(attempt) + ", at: " + datetime.datetime.now().strftime("%H:%M:%S"))
+                        else:
+                            writeSuccessToLogAndScreen("file:" + outputFileName + " succeed, version: " + version[fileName]+ ", at: " + datetime.datetime.now().strftime("%H:%M:%S"))
+                        
+                    attempt += 1
+    
             
 writeToLogAndScreen("\n\nFiles created: " + ", ".join(outputFileNames))
 writeToScreen("\n\n")
