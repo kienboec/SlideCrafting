@@ -456,6 +456,8 @@ for fileName in sorted(topicsDict.keys()):
                             patchedLine = (line
                                 .replace("pdflatex: security risk: running with elevated privileges","")
                                 .replace("pdflatex: major issue: So far, no MiKTeX administrator has checked for updates.", "")
+                                .replace("epstopdf: security risk: running with elevated privileges","")
+                                .replace("epstopdf: major issue: So far, no MiKTeX administrator has checked for updates.", "")
                                 .replace("Created directory plantuml-images","")
                                 .strip())
                             
