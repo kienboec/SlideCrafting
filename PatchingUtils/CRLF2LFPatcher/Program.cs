@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -13,21 +14,28 @@ namespace CRLF2LFPatcher
             {
                 Console.WriteLine("wrong usage...");
                 Console.WriteLine();
-                Console.WriteLine("usage: CRLF2LFPatcher <path>");
+                Console.WriteLine("usage: CRLF2LFPatcher <path}+");
                 return;
             }
 
-            if (!File.Exists(args.First()))
+            foreach (string fileName in args)
             {
-                Console.WriteLine("file does not exists: " + args.First());
-                Console.WriteLine();
-                Console.WriteLine("usage: CRLF2LFPatcher <path>");
-                return;
+                if (!File.Exists(fileName))
+                {
+                    Console.WriteLine("file does not exists: " + fileName);
+                    Console.WriteLine();
+                    Console.WriteLine("usage: CRLF2LFPatcher <path>");
+                    return;
+                }
             }
 
-            var contents = File.ReadAllText(args.First(), Encoding.UTF8);
-            contents = contents.Replace("\r\n", "\n");
-            File.WriteAllText(args.First(), contents);
+            foreach (string fileName in args)
+            {
+                var contents = File.ReadAllText(fileName, Encoding.UTF8);
+                contents = contents.Replace("\r\n", "\n");
+                File.WriteAllText(fileName, contents);
+                Console.WriteLine($"patched win to unix newline: {fileName}");
+            }
         }
     }
 }
