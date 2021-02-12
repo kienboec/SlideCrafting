@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "SlideCrafting": {
+      "commandName": "Project",
+      "environmentVariables": {
+        "DOTNET_ENVIRONMENT": "Development"
+      }
+    }
+  }
+}

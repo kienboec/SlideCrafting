@@ -43,12 +43,19 @@ RUN    mpm --admin --update-db
 RUN    mpm --admin --install amsfonts --install biber-linux-x86_64 
 RUN    initexmf --admin --update-fndb
 
+# Pandoc
 WORKDIR /miktex/work
 
 RUN mkdir /pandoc && \
     wget https://github.com/jgm/pandoc/releases/download/2.10/pandoc-2.10-1-amd64.deb && \
     mv pandoc-2.10-1-amd64.deb /pandoc && \
     apt install /pandoc/pandoc-2.10-1-amd64.deb
+
+# install .net5
+RUN wget https://packages.microsoft.com/config/ubuntu/20.04/packages-microsoft-prod.deb -O packages-microsoft-prod.deb && \
+	dpkg -i packages-microsoft-prod.deb && \
+	apt-get update; \
+	apt-get install -y dotnet-sdk-5.0 dotnet-runtime-5.0
 
 RUN mkdir /miktex/work/log && \
     touch /miktex/work/log/access.log && \
@@ -58,6 +65,13 @@ RUN mkdir /miktex/work/log && \
 RUN pip3 install wheel && \
     pip3 install pandoc-plantuml-filter pyyaml 
 
+# set environment variables
+ENV MIKTEX_USERCONFIG=/miktex/.miktex/texmfs/config
+ENV MIKTEX_USERDATA=/miktex/.miktex/texmfs/data
+ENV MIKTEX_USERINSTALL=/miktex/.miktex/texmfs/install
+ENV PLANTUML_BIN="java -jar /miktex/work/slideCrafting/dependencies/plantuml.1.2020.14.jar"
+
+# Copy files from local directory
 COPY . /miktex/work/slideCrafting/
 
 # Patch the installed filter with my additional code
@@ -65,29 +79,9 @@ RUN rm /usr/local/lib/python3.8/dist-packages/pandoc_plantuml_filter.py && \
 	cp /miktex/work/slideCrafting/dependencies/pandoc_plantuml_filter.py /usr/local/lib/python3.8/dist-packages/ && \
 	rm /usr/local/lib/python3.8/dist-packages/__pycache__/pandoc_plantuml_filter.cpython-38.pyc
 
-RUN cd /miktex/work/slideCrafting/webserver && npm install
-
-RUN ln -s /miktex/work/slideCrafting/run.sh /miktex/work/run.sh && \
-    ln -s /miktex/work/slideCrafting/watch.sh /miktex/work/watch.sh && \
-    ln -s /miktex/work/slideCrafting/slideCrafting.sh /miktex/work/slideCrafting.sh && \
-    chmod 0705 /miktex/work/run.sh && \
-    chmod 0705 /miktex/work/slideCrafting.sh && \
-    chmod 0705 /miktex/work/slideCrafting/updateTemplate.sh && \
-    chmod 0705 /miktex/work/watch.sh
-
-ENV MIKTEX_USERCONFIG=/miktex/.miktex/texmfs/config
-ENV MIKTEX_USERDATA=/miktex/.miktex/texmfs/data
-ENV MIKTEX_USERINSTALL=/miktex/.miktex/texmfs/install
-ENV PLANTUML_BIN="java -jar /miktex/work/slideCrafting/dependencies/plantuml.1.2020.14.jar"
-
-# RUN echo \# TEST > /tmp/test.md && \
-#     pandoc /tmp/test.md \
-#         --from=markdown+raw_tex+header_attributes+implicit_header_references+raw_attribute+inline_code_attributes+fancy_lists+line_blocks \
-#         --highlight-style=tango --to=beamer -V 'beameroption:show notes' \
-#         --pdf-engine=pdflatex -o /tmp/test_slides_notes.pdf && \
-#     rm /tmp/test.md && \
-#     rm /tmp/test_slides_notes.pdf
-
+# expose webserver port
 EXPOSE 8080/tcp
 
-CMD ./slideCrafting.sh 
+# run slidecrafting
+CMD cd slideCrafting && dotnet run --project SlideCrafting --environment "Production"
+#CMD /bin/bash
