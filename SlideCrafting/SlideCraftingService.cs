@@ -125,7 +125,7 @@ namespace SlideCrafting
         {
             try
             {
-                CancelCurrentCraftingActionTokenSource.Cancel(true);
+                CancelCurrentCraftingActionTokenSource?.Cancel(true);
                 await Task.CompletedTask;
             }
             catch (Exception exc)

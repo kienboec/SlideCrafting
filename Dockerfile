@@ -83,5 +83,5 @@ RUN rm /usr/local/lib/python3.8/dist-packages/pandoc_plantuml_filter.py && \
 EXPOSE 8080/tcp
 
 # run slidecrafting
-CMD cd slideCrafting && dotnet run --project SlideCrafting --environment "Production"
-#CMD /bin/bash
+RUN echo cd slideCrafting && echo dotnet build && cd /miktex/work/slideCrafting/SlideCrafting/bin/Debug/net5.0
+CMD cd /miktex/work/slideCrafting/SlideCrafting/bin/Debug/net5.0 && dotnet SlideCrafting.dll --environment "Production"

@@ -38,8 +38,7 @@ namespace SlideCrafting.Utils
             Directory.CreateDirectory(distFolder);
         }
 
-        public static void MoveAllFilesFromFolderToFolder(string fromFolder, string toFolder)
-        {
+        public static void MoveAllFilesFromFolderToFolder(string fromFolder, string toFolder, bool shouldRethrow = false) {
             foreach (var file in Directory.EnumerateFiles(fromFolder))
             {
                 try
@@ -52,10 +51,25 @@ namespace SlideCrafting.Utils
                     {
                         File.Copy(file, Path.Combine(toFolder, Path.GetFileName(file)), overwrite: true);
                     }
-                    catch
+                    catch (Exception exc)
                     {
-                        // ignore
+                        if (shouldRethrow)
+                        {
+                            throw new FileLoadException("can not load file to move or copy (" + file + ")", file, exc);
+                        }
                     }
+                }
+            }
+
+            foreach (var sourceFolder in Directory.EnumerateDirectories((fromFolder)))
+            {
+                if (!sourceFolder.StartsWith(toFolder))
+                {
+                    var dirInfo = new DirectoryInfo(sourceFolder);
+                    var targetFolder = Path.Combine(toFolder, dirInfo.Name);
+                    CreateFolder(targetFolder);
+                    MoveAllFilesFromFolderToFolder(sourceFolder, targetFolder);
+                    RemoveFolder(sourceFolder);
                 }
             }
         }

@@ -1,6 +1,8 @@
 ﻿using System;
 using System.IO;
+using System.Linq;
 using System.Net;
+using System.Reflection;
 using System.Reflection.Metadata.Ecma335;
 using System.Threading;
 using System.Threading.Tasks;
@@ -32,7 +34,7 @@ namespace SlideCrafting
                     .ConfigureLogging((context, builder) =>
                     {
                         System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
-
+                        
                         // builder.AddLog4Net(context.Configuration.GetValue<string>("LoggerConfig", "Log4Net.config.xml"));
                         // builder.SetMinimumLevel(LogLevel.Trace);
 
@@ -44,6 +46,21 @@ namespace SlideCrafting
                     })
                     .ConfigureServices((context, services) =>
                     {
+                        Console.WriteLine("".PadLeft(60, '-'));
+                        Console.WriteLine("Configuration:");
+                        context.Configuration
+                            .AsEnumerable()
+                            .OrderBy(x => x.Key)
+                            .ToList()
+                            .ForEach(x => Console.WriteLine("|" + x.Key + "|" + x.Value + "|"));
+                        Console.WriteLine("".PadLeft(60, '-'));
+                        Console.WriteLine("Current directory:" + Environment.CurrentDirectory);
+                        Console.WriteLine("".PadLeft(60, '-'));
+                        Console.WriteLine("Environment: " + context.HostingEnvironment.EnvironmentName);
+                        Console.WriteLine("".PadLeft(60, '-'));
+                        Console.WriteLine();
+                        Console.WriteLine();
+
                         services
                             .Configure<SlideCraftingConfig>(context.Configuration,
                                 options => { options.BindNonPublicProperties = false; })

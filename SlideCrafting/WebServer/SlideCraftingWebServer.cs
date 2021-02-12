@@ -52,6 +52,7 @@ namespace SlideCrafting.WebServer
                         byte[] buffer;
                         switch (request.RawUrl)
                         {
+                            case "":
                             case "/":
                             case "/index.html":
                                 buffer = await File.ReadAllBytesAsync("View/index.html", cancellationToken);

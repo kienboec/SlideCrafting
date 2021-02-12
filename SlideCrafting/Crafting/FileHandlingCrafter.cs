@@ -27,7 +27,7 @@ namespace SlideCrafting.Crafting
 
         private readonly ILog _logger = LogManager.GetLogger(typeof(FileHandlingCrafter));
         protected readonly IOptions<SlideCraftingConfig> _config;
-        
+
 
         public FileHandlingCrafter(IOptions<SlideCraftingConfig> config)
         {
@@ -36,34 +36,26 @@ namespace SlideCrafting.Crafting
 
         public async Task<List<string>> Craft(CancellationToken token)
         {
-            OS.CreateFolder(_config.Value.DistFolder);
-            OS.CreateFolder(_config.Value.ArchiveFolder);
-            OS.MoveAllFilesFromFolderToFolder(_config.Value.DistFolder, _config.Value.ArchiveFolder);
-            OS.RemoveFolder(_config.Value.WorkFolder);
-            OS.CopyFolder(_config.Value.OriginFolder, _config.Value.WorkFolder);
-
-            List<string> outputFileNames = new List<string>();
-            outputFileNames.AddRange(await ExecuteCraftingCommand(token));
-            return await Task.FromResult(outputFileNames);
-
-            /*
-            var inputFiles = OS.GetFilesOfFolderRecursive(_config.Value.WorkFolder, _config.Value.ListFilesExtension, _config.Value.YamlKeyInputFiles);
-            var exerciseFiles = OS.GetFilesOfFolderRecursive(_config.Value.WorkFolder, _config.Value.ListFilesExtension, _config.Value.YamlKeyExerciseFiles);
-
-            Environment.CurrentDirectory = _config.Value.WorkFolder;
-            if (token.IsCancellationRequested)
+            try
             {
+                OS.CreateFolder(_config.Value.DistFolder);
+                OS.CreateFolder(_config.Value.ArchiveFolder);
+                OS.MoveAllFilesFromFolderToFolder(
+                    _config.Value.DistFolder, 
+                    _config.Value.ArchiveFolder,
+                    true);
+                OS.RemoveFolder(_config.Value.WorkFolder);
+                OS.CopyFolder(_config.Value.OriginFolder, _config.Value.WorkFolder);
+
+                List<string> outputFileNames = new List<string>();
+                outputFileNames.AddRange(await ExecuteCraftingCommand(token));
                 return await Task.FromResult(outputFileNames);
             }
-
-            foreach (var project in inputFiles.Keys)
+            catch (Exception exc)
             {
-                var pandocMetadataArg = "--metadata-file=" + Path.Combine(_config.Value.WorkFolder, project);
-                var projectName = project.Substring(0, project.Length - _config.Value.IndexFilesExtension.Length);
+                _logger.Error("Crafting failed", exc);
+                return await Task.FromResult<List<string>>(null);
             }
-
-            return await Task.FromResult(outputFileNames);*/
-
         }
 
         protected virtual async Task<List<string>> ExecuteCraftingCommand(CancellationToken token)
