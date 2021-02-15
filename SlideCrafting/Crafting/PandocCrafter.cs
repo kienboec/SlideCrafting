@@ -15,14 +15,29 @@ namespace SlideCrafting.Crafting
     public class PandocCrafter : FileHandlingCrafter
     {
         private readonly ILog _logger = LogManager.GetLogger(typeof(PandocCrafter));
+        private bool _callUpdate;
+
+        public void UpdateTemplateInNextRun()
+        {
+            _callUpdate = true;
+        }
 
         public PandocCrafter(IOptions<SlideCraftingConfig> config) : base(config)
         {
+            UpdateTemplateInNextRun();
         }
 
         protected override async Task<List<string>> ExecuteCraftingCommand(CancellationToken token)
         {
             var indexFiles = OS.GetFilesOfFolder(_config.Value.WorkFolder, _config.Value.IndexFilesExtension);
+            _logger.Info("Crafting index files:");
+            indexFiles.ForEach(x => _logger.Info($"   - {x}"));
+
+            if (_callUpdate)
+            {
+
+                _callUpdate = false;
+            }
 
             var inputFiles =
                 indexFiles
@@ -31,6 +46,7 @@ namespace SlideCrafting.Crafting
                             file,
                             OS.GetInputFilesRecursive(
                                 file,
+                                _config.Value.WorkFolder,
                                 _config.Value.ListFilesExtension,
                                 _config.Value.YamlKeyInputFiles)))
                     .ToDictionary(x => x.Key, x => x.Value);
@@ -42,6 +58,7 @@ namespace SlideCrafting.Crafting
                             file,
                             OS.GetInputFilesRecursive(
                                 file,
+                                _config.Value.WorkFolder,
                                 _config.Value.ListFilesExtension,
                                 _config.Value.YamlKeyExerciseFiles)))
                     .ToDictionary(x => x.Key, x => x.Value);
@@ -59,10 +76,5 @@ namespace SlideCrafting.Crafting
 
             return await Task.FromResult(indexFiles);
         }
-
-
-
-
-
     }
 }

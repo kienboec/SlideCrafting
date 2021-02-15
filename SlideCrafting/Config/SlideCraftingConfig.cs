@@ -27,6 +27,7 @@ namespace SlideCrafting.Config
         public string PandocApp { get; set; }
         public string PdfEngine { get; set; }
 
+        public bool StartWebServer { get; set; }
 
         public string OriginFolder { get; set; }
         public string WorkFolder { get; set; }
@@ -36,8 +37,6 @@ namespace SlideCrafting.Config
         public string DocxReference { get; set; }
         public string PptxReference { get; set; }
         public string BeamerTemplateFolder { get; set; }
-
-
 
         public bool GenerationFlagBeamer => Environment.GetEnvironmentVariable("GEN_BEAMER") == "1";
         public bool GenerationFlagBeamerNotes => Environment.GetEnvironmentVariable("GEN_BEAMER_NOTES") == "1";

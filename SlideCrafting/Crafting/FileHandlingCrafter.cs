@@ -2,22 +2,12 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using log4net;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using RSG;
 using SlideCrafting.Config;
-using SlideCrafting.Logger;
-using SlideCrafting.Messenger;
 using SlideCrafting.Utils;
-using YamlDotNet.RepresentationModel;
-using YamlDotNet.Serialization;
-using YamlDotNet.Serialization.NamingConventions;
 
 namespace SlideCrafting.Crafting
 {
@@ -38,14 +28,15 @@ namespace SlideCrafting.Crafting
         {
             try
             {
-                OS.CreateFolder(_config.Value.DistFolder);
-                OS.CreateFolder(_config.Value.ArchiveFolder);
+                OS.CreateFolder(_config.Value.DistFolder, token);
+                OS.CreateFolder(_config.Value.ArchiveFolder, token);
                 OS.MoveAllFilesFromFolderToFolder(
                     _config.Value.DistFolder, 
                     _config.Value.ArchiveFolder,
+                    token,
                     true);
-                OS.RemoveFolder(_config.Value.WorkFolder);
-                OS.CopyFolder(_config.Value.OriginFolder, _config.Value.WorkFolder);
+                OS.RemoveFolder(_config.Value.WorkFolder, token);
+                OS.CopyFolder(_config.Value.OriginFolder, _config.Value.WorkFolder, token);
 
                 List<string> outputFileNames = new List<string>();
                 outputFileNames.AddRange(await ExecuteCraftingCommand(token));
@@ -60,7 +51,7 @@ namespace SlideCrafting.Crafting
 
         protected virtual async Task<List<string>> ExecuteCraftingCommand(CancellationToken token)
         {
-            OS.CopyFolder(_config.Value.WorkFolder, _config.Value.DistFolder);
+            OS.CopyFolder(_config.Value.WorkFolder, _config.Value.DistFolder, token, true);
             return await Task.FromResult(Directory.GetFiles(_config.Value.DistFolder).ToList());
         }
 

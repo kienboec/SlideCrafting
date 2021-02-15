@@ -22,14 +22,24 @@ namespace SlideCrafting.FileSystemWatcherHandling
             _log.Debug("start initializing watcher");
 
             _watcher = new FileSystemWatcher(folder) { IncludeSubdirectories = true };
-            _watcher.Deleted += (sender, e) => _messenger.Publish("recraft", "file deleted", e);
-            _watcher.Changed += (sender, e) => _messenger.Publish("recraft", "file changed", e);
-            _watcher.Created += (sender, e) => _messenger.Publish("recraft", "file created", e);
-            _watcher.Renamed += (sender, e) => _messenger.Publish("recraft", "file renamed", e);
+            _watcher.Deleted += (sender, e) => Publish("recraft", "file deleted", e);
+            _watcher.Changed += (sender, e) => Publish("recraft", "file changed", e);
+            _watcher.Created += (sender, e) => Publish("recraft", "file created", e);
+            _watcher.Renamed += (sender, e) => Publish("recraft", "file renamed", e);
             _watcher.Error += (sender, e) => _log.Error("Watcher detected error", e.GetException());
             _watcher.EnableRaisingEvents = true;
 
             _log.Debug("stop initializing watcher");
+        }
+
+        private void Publish(string type, string message, FileSystemEventArgs e)
+        {
+            if (e.FullPath.Contains(Path.DirectorySeparatorChar + ".git" + Path.DirectorySeparatorChar))
+            {
+                // ignore changes in the git folder
+                return;
+            }
+            this._messenger.Publish(type, message, e);
         }
     }
 }

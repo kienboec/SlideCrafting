@@ -23,6 +23,7 @@ namespace SlideCrafting.Crafting
         private readonly string _metaFile;
         private readonly List<string> _inputFiles;
         private readonly List<string> _exercises;
+        private string OutFileName => Path.Combine(_config.DistFolder, Path.GetFileNameWithoutExtension(_metaFile) + "_slides.pdf");
         private ILog _logger = LogManager.GetLogger(typeof(PandocProcess));
 
         public PandocProcess(SlideCraftingConfig config, string type, string metaFile, List<string> inputFiles, List<string> exercises)
@@ -34,23 +35,61 @@ namespace SlideCrafting.Crafting
             _exercises = exercises;
         }
 
-        public async Task Start(CancellationToken token)
+        public async Task<string> Start(CancellationToken token)
         {
-            Process process = new Process();
             
-            process.StartInfo = new ProcessStartInfo(this._config.PandocApp)
+            var info = new ProcessStartInfo()
             {
+                FileName = this._config.PandocApp,
                 CreateNoWindow = true,
                 WorkingDirectory = _config.WorkFolder,
-                UseShellExecute = true,
+                UseShellExecute = false,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                RedirectStandardInput = true,
+                ErrorDialog = false
             };
+
+
+            string indent = "   ";
+            _logger.Debug("Process:");
+            _logger.Debug(indent + "workdir: " + _config.WorkFolder);
+            _logger.Debug(indent + "args:");
+            var argIndent = indent + indent;
             foreach (string arg in GetArgs())
             {
-                process.StartInfo.ArgumentList.Add(arg);
+                _logger.Debug(argIndent + arg);
+                info.ArgumentList.Add(arg);
             }
-            process.Start();
-            await process.WaitForExitAsync(token);
-            var exitCode = process.ExitCode;
+
+            using (var process = Process.Start(info))
+            {
+
+                _logger.Debug("Reading Standard Out/Err:");
+                Task.WaitAll(
+                    Task.Run(() =>
+                    {
+                        while (!process.StandardOutput.EndOfStream)
+                        {
+                            _logger.Info(process.StandardOutput.ReadLine());
+                        }
+                    }),
+                    Task.Run(() =>
+                    {
+
+                        while (!process.StandardError.EndOfStream)
+                        {
+                            _logger.Error(process.StandardError.ReadLine());
+                        }
+                    }));
+
+                await process.WaitForExitAsync(token);
+
+                _logger.Debug(indent + "ExitCode: " + process.ExitCode.ToString());
+                _logger.Debug(indent + "ExitTime: " + process.ExitTime.ToString("O"));
+            }
+
+            return OutFileName;
         }
 
         private List<string> GetArgs()
@@ -85,9 +124,7 @@ namespace SlideCrafting.Crafting
             args.Add("--pdf-engine=" + _config.PdfEngine);
             
             args.Add("-o");
-            args.Add(Path.Combine(
-                _config.DistFolder, 
-                Path.GetFileNameWithoutExtension(_metaFile) +"_slides.pdf")); // dependent of generator
+            args.Add(OutFileName); // dependent of generator
 
             args.Add("--slide-level=3");
 
@@ -98,7 +135,7 @@ namespace SlideCrafting.Crafting
         {
             return new List<string>()
             {
-                "--metadata-file=", Path.Combine(_config.WorkFolder, _metaFile)
+                "--metadata-file=" + Path.Combine(_config.WorkFolder, _metaFile)
             };
 
         }
@@ -118,9 +155,9 @@ namespace SlideCrafting.Crafting
 
         private string GetThemeNameOrNull()
         {
-            var beamerTemplateFile = OS.GetFilesOfFolder(_config.BeamerTemplateFolder, "sty");
+            var beamerTemplateFile = OS.GetFilesOfFolder(_config.BeamerTemplateFolder, ".sty");
             var fileName = beamerTemplateFile?.FirstOrDefault() ?? string.Empty;
-            if (beamerTemplateFile.Count == 1 && fileName.StartsWith("beamertheme"))
+            if (beamerTemplateFile.Count == 1 && Path.GetFileName(fileName).StartsWith("beamertheme"))
             {
                 return Path.GetFileNameWithoutExtension(beamerTemplateFile.First()).Substring(11);
             }

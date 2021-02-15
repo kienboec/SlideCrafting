@@ -71,6 +71,12 @@ ENV MIKTEX_USERDATA=/miktex/.miktex/texmfs/data
 ENV MIKTEX_USERINSTALL=/miktex/.miktex/texmfs/install
 ENV PLANTUML_BIN="java -jar /miktex/work/slideCrafting/dependencies/plantuml.1.2020.14.jar"
 
+RUN    mpm --update
+RUN    initexmf --register-root=/miktex/work/src/_templates || true
+RUN    mpm --admin --update-db 
+RUN    initexmf --admin --update-fndb
+RUN    mpm --update 
+
 # Copy files from local directory
 COPY . /miktex/work/slideCrafting/
 

@@ -68,7 +68,7 @@ namespace SlideCrafting
                             .AddSingleton<IMessenger, CustomMessenger>()
                             .AddSingleton<IWatcher, FSWatcher>()
 
-                            .AddSingleton<ICrafter, FileHandlingCrafter>()
+                            .AddSingleton<ICrafter, PandocCrafter>()
                             .AddSingleton<IWebInterface, SlideCraftingWebServer>()
 
                             .AddHostedService<SlideCraftingService>()

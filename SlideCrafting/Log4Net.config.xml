@@ -1,7 +1,8 @@
 ﻿<?xml version="1.0" encoding="utf-8" ?>
 <log4net>
   <!--ColoredConsoleAppender -->
-  <!-- seems to make problems in .net core ubuntu 
+  <!-- not supported on .net core ubuntu -->
+  <!--
   <appender name="consoleAppender" type="log4net.Appender.ColoredConsoleAppender">
   
     <layout type="log4net.Layout.PatternLayout">
@@ -9,19 +10,35 @@
     </layout>
 
     <mapping>
+      <level value="FATAL" />
+      <foreColor value="Red" />
+      <backColor value="White" />
+    </mapping>
+    <mapping>
       <level value="ERROR" />
+      <foreColor value="Purple" />
+    </mapping>
+    <mapping>
+      <level value="WARN" />
+      <foreColor value="Yellow" />
+    </mapping>
+    <mapping>
+      <level value="INFO" />
       <foreColor value="White" />
-      <backColor value="Red, HighIntensity" />
+    </mapping>
+    <mapping>
+      <level value="DEBUG" />
+      <foreColor value="Cyan" />
     </mapping>
   </appender>
   -->
 
+  <!-- boring ConsoleAppender -->
   <appender name="consoleAppender" type="log4net.Appender.ConsoleAppender">
 
     <layout type="log4net.Layout.PatternLayout">
       <conversionPattern value="%d{yyyy-MM-dd HH:mm:ss} %-5level %logger|%message%newline" />
     </layout>
-
   </appender>
 
   <appender name="rfAppender" type="log4net.Appender.RollingFileAppender">

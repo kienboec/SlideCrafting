@@ -9,18 +9,32 @@ using System.Threading.Tasks;
 using log4net;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+using SlideCrafting.Config;
 
 namespace SlideCrafting.WebServer
 {
     public class SlideCraftingWebServer : IWebInterface
     {
+        private readonly IOptions<SlideCraftingConfig> _config;
         private readonly ILog _logger = LogManager.GetLogger(typeof(SlideCraftingWebServer));
 
         private Task WebServerTask { get; set; } = null;
         private HttpListener _listener = null;
 
+        public SlideCraftingWebServer(IOptions<SlideCraftingConfig> config)
+        {
+            _config = config;
+        }
+
         public async Task StartAsync(CancellationToken cancellationToken)
         {
+            if (!_config.Value.StartWebServer)
+            {
+                _logger.Debug("WebServer feature disabled");
+                return;
+            }
+
             if (!HttpListener.IsSupported)
             {
                 _logger.Fatal("Windows XP SP2 or Server 2003 is required to use the HttpListener class.");
@@ -67,6 +81,7 @@ namespace SlideCrafting.WebServer
 
                         response.ContentLength64 = buffer.Length;
                         var output = response.OutputStream;
+                        response.AddHeader("Content-Type", "text/html");
                         await output.WriteAsync(buffer, 0, buffer.Length, cancellationToken);
                         output.Close();
                     }
