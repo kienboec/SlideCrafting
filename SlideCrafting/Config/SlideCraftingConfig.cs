@@ -37,6 +37,9 @@ namespace SlideCrafting.Config
         public string DocxReference { get; set; }
         public string PptxReference { get; set; }
         public string BeamerTemplateFolder { get; set; }
+        public string UpdateBeamerTemplateScript { get; set; }
+
+
 
         public bool GenerationFlagBeamer => Environment.GetEnvironmentVariable("GEN_BEAMER") == "1";
         public bool GenerationFlagBeamerNotes => Environment.GetEnvironmentVariable("GEN_BEAMER_NOTES") == "1";

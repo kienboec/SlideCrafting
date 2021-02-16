@@ -23,16 +23,22 @@ namespace SlideCrafting.Crafting
         private readonly string _metaFile;
         private readonly List<string> _inputFiles;
         private readonly List<string> _exercises;
+        private readonly bool _withNotes;
+        private readonly bool _renderExercises;
         private string OutFileName => Path.Combine(_config.DistFolder, Path.GetFileNameWithoutExtension(_metaFile) + "_slides.pdf");
         private ILog _logger = LogManager.GetLogger(typeof(PandocProcess));
 
-        public PandocProcess(SlideCraftingConfig config, string type, string metaFile, List<string> inputFiles, List<string> exercises)
+        public int ExitCode { get; private set; }
+
+        public PandocProcess(SlideCraftingConfig config, string type, string metaFile, List<string> inputFiles, List<string> exercises, bool withNotes = false, bool renderExercises = false)
         {
             _config = config;
             _type = type;
             _metaFile = metaFile;
             _inputFiles = inputFiles;
             _exercises = exercises;
+            _withNotes = withNotes;
+            _renderExercises = renderExercises;
         }
 
         public async Task<string> Start(CancellationToken token)
@@ -85,7 +91,8 @@ namespace SlideCrafting.Crafting
 
                 await process.WaitForExitAsync(token);
 
-                _logger.Debug(indent + "ExitCode: " + process.ExitCode.ToString());
+                ExitCode = process.ExitCode;
+                _logger.Debug(indent + $"ExitCode: {this.ExitCode}");
                 _logger.Debug(indent + "ExitTime: " + process.ExitTime.ToString("O"));
             }
 
@@ -107,26 +114,38 @@ namespace SlideCrafting.Crafting
                     args.Add("--to=beamer"); 
                     args.AddRange(this.GetThemeArgs());
 
-                    args.Add("-V");
-                    args.Add("beameroption:show notes");
+                    if (_withNotes)
+                    {
+                        args.Add("-V");
+                        args.Add("beameroption:show notes");
+                    }
+                    
+                    args.Add("--pdf-engine=" + _config.PdfEngine);
+
                     break;
                 case "pdf":
+                    args.Add("--to=beamer");
+                    args.Add("--pdf-engine=" + _config.PdfEngine);
                     break;
                 case "docx":
+                    args.Add("--to=docx");
                     break;
                 case "pptx":
                     // office: -reference-doc=
+                    args.Add("--reference-doc=" + _config.PptxReference);
                     break;
                 default:
                     throw new InvalidEnumArgumentException("type parameter should not be: " + _type);
             }
 
-            args.Add("--pdf-engine=" + _config.PdfEngine);
             
             args.Add("-o");
             args.Add(OutFileName); // dependent of generator
 
-            args.Add("--slide-level=3");
+            if (_type == "beamer")
+            {
+                args.Add("--slide-level=3");
+            }
 
             return args;
         }

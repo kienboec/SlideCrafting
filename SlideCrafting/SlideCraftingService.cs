@@ -67,7 +67,8 @@ namespace SlideCrafting
                         {
                             CancelCurrentCraftingActionTokenSource = new CancellationTokenSource();
                             _logger.Info("Create Crafting Task");
-                            await _crafter.Craft(CancelCurrentCraftingActionTokenSource.Token);
+                            var outputFiles = await _crafter.Craft(CancelCurrentCraftingActionTokenSource.Token);
+                            _messenger.Publish("crafted", "files crafted", outputFiles);
                             _logger.Info("Finished Crafting Task");
                             CancelCurrentCraftingActionTokenSource = null;
                         }
