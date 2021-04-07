@@ -9,12 +9,14 @@ using System.Threading.Tasks;
 using log4net;
 using Microsoft.Extensions.Options;
 using SlideCrafting.Config;
+using SlideCrafting.Messenger;
 using SlideCrafting.Utils;
 
 namespace SlideCrafting.Crafting
 {
     public class PandocCrafter : FileHandlingCrafter
     {
+        private readonly IMessenger _messenger;
         private readonly ILog _logger = LogManager.GetLogger(typeof(PandocCrafter));
         private bool _callUpdate;
 
@@ -23,8 +25,9 @@ namespace SlideCrafting.Crafting
             _callUpdate = true;
         }
 
-        public PandocCrafter(IOptions<SlideCraftingConfig> config) : base(config)
+        public PandocCrafter(IOptions<SlideCraftingConfig> config, IMessenger messenger) : base(config)
         {
+            _messenger = messenger;
             UpdateTemplateInNextRun();
         }
 
@@ -38,7 +41,8 @@ namespace SlideCrafting.Crafting
 
             if (_callUpdate)
             {
-                Process.Start(_config.Value.UpdateBeamerTemplateScript);
+                var updateProcess = Process.Start(_config.Value.UpdateBeamerTemplateScript);
+                await updateProcess.WaitForExitAsync(token);
                 _callUpdate = false;
             }
 
@@ -73,33 +77,31 @@ namespace SlideCrafting.Crafting
 
             foreach (var file in indexFiles)
             {
-                bool success = false;
-                
-                for (int i = 0; i < _config.Value.AttemptsOnError && !success; i++)
-                {
-                    var pandocProcesses = new List<PandocProcess>
+
+
+                var pandocProcessesForSlides = new List<PandocProcess>
                     {
                         new PandocProcess(_config.Value, "beamer", file, inputFiles[file], exerciseFiles[file], withNotes: true),
                         new PandocProcess(_config.Value, "beamer", file, inputFiles[file], exerciseFiles[file], withNotes: false),
                         new PandocProcess(_config.Value, "pdf", file, inputFiles[file], exerciseFiles[file]),
-                        new PandocProcess(_config.Value, "pdf", file, inputFiles[file], exerciseFiles[file], renderExercises: true),
                         new PandocProcess(_config.Value, "pptx", file, inputFiles[file], exerciseFiles[file]),
                         new PandocProcess(_config.Value, "docx", file, inputFiles[file], exerciseFiles[file]),
-                        new PandocProcess(_config.Value, "docx", file, inputFiles[file], exerciseFiles[file], renderExercises: true),
-
-
                     };
 
-                    foreach (var pandocProcess in pandocProcesses)
+                foreach (var pandocProcess in pandocProcessesForSlides)
+                {
+                    bool success = false;
+                    for (int i = 0; i < _config.Value.AttemptsOnError && !success; i++)
                     {
-                        
                         generatedFiles.Add(await pandocProcess.Start(token));
+                        _messenger.Publish("crafted single", "one process ready", pandocProcess);
                         if (pandocProcess.ExitCode == 0)
                         {
                             success = true;
                         }
                     }
                 }
+
             }
 
             return await Task.FromResult(generatedFiles);

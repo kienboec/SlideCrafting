@@ -13,6 +13,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using SlideCrafting.Config;
+using SlideCrafting.ConsoleInterface;
 using SlideCrafting.Crafting;
 using SlideCrafting.FileSystemWatcherHandling;
 using SlideCrafting.Messenger;
@@ -69,6 +70,7 @@ namespace SlideCrafting
                             .AddSingleton<IWatcher, FSWatcher>()
 
                             .AddSingleton<ICrafter, PandocCrafter>()
+                            .AddSingleton<IConsoleInterface, ConsoleInterface.ConsoleInterface>()
                             .AddSingleton<IWebInterface, SlideCraftingWebServer>()
 
                             .AddHostedService<SlideCraftingService>()

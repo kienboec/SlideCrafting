@@ -9,6 +9,7 @@ using log4net;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using SlideCrafting.Config;
+using SlideCrafting.ConsoleInterface;
 using SlideCrafting.Crafting;
 using SlideCrafting.FileSystemWatcherHandling;
 using SlideCrafting.Logger;
@@ -19,6 +20,7 @@ namespace SlideCrafting
 {
     public class SlideCraftingService : IHostedService
     {
+        private readonly IConsoleInterface _consoleInterface;
         private readonly IMessenger _messenger;
         private readonly ICrafter _crafter;
         private readonly IWebInterface _webInterface;
@@ -30,7 +32,7 @@ namespace SlideCrafting
 
         private CancellationTokenSource CancelCurrentCraftingActionTokenSource { get; set; } = null;
 
-        public SlideCraftingService(IMessenger messenger, ICrafter crafter, IWebInterface webInterface, IOptions<SlideCraftingConfig> config, IWatcher watcher)
+        public SlideCraftingService(IMessenger messenger, ICrafter crafter, IWebInterface webInterface, IOptions<SlideCraftingConfig> config, IWatcher watcher, IConsoleInterface consoleInterface)
         {
             try
             {
@@ -38,6 +40,7 @@ namespace SlideCrafting
                 _crafter = crafter;
                 _webInterface = webInterface;
                 _watcher = watcher;
+                _consoleInterface = consoleInterface;
                 _config = config.AssureOriginExists()
                                 .AssureDistributionExists();
 

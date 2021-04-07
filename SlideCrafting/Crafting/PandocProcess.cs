@@ -25,7 +25,7 @@ namespace SlideCrafting.Crafting
         private readonly List<string> _exercises;
         private readonly bool _withNotes;
         private readonly bool _renderExercises;
-        private string OutFileName => Path.Combine(_config.DistFolder, Path.GetFileNameWithoutExtension(_metaFile) + "_slides.pdf");
+        private string _outFileName;
         private ILog _logger = LogManager.GetLogger(typeof(PandocProcess));
 
         public int ExitCode { get; private set; }
@@ -58,19 +58,13 @@ namespace SlideCrafting.Crafting
 
 
             string indent = "   ";
-            _logger.Debug("Process:");
+            _logger.Debug($"Process: {_type} - {_metaFile} (notes: {_withNotes})");
             _logger.Debug(indent + "workdir: " + _config.WorkFolder);
-            _logger.Debug(indent + "args:");
-            var argIndent = indent + indent;
-            foreach (string arg in GetArgs())
-            {
-                _logger.Debug(argIndent + arg);
-                info.ArgumentList.Add(arg);
-            }
+            GetArgs().ForEach(arg => info.ArgumentList.Add(arg));
+            _logger.Debug(indent + indent + "args:" + string.Join(" ", info.ArgumentList));
 
             using (var process = Process.Start(info))
             {
-
                 _logger.Debug("Reading Standard Out/Err:");
                 Task.WaitAll(
                     Task.Run(() =>
@@ -94,9 +88,10 @@ namespace SlideCrafting.Crafting
                 ExitCode = process.ExitCode;
                 _logger.Debug(indent + $"ExitCode: {this.ExitCode}");
                 _logger.Debug(indent + "ExitTime: " + process.ExitTime.ToString("O"));
+                _logger.Info(indent + "Generated: " + _outFileName);
             }
 
-            return OutFileName;
+            return _outFileName;
         }
 
         private List<string> GetArgs()
@@ -114,25 +109,33 @@ namespace SlideCrafting.Crafting
                     args.Add("--to=beamer"); 
                     args.AddRange(this.GetThemeArgs());
 
+                    _outFileName = MakeOutName("_slides.pdf");
                     if (_withNotes)
                     {
                         args.Add("-V");
                         args.Add("beameroption:show notes");
+                        _outFileName = MakeOutName("_slides_with_notes.pdf");
                     }
                     
                     args.Add("--pdf-engine=" + _config.PdfEngine);
-
+                    
                     break;
                 case "pdf":
-                    args.Add("--to=beamer");
+                    args.Add("--to=pdf");
                     args.Add("--pdf-engine=" + _config.PdfEngine);
+                    _outFileName = MakeOutName("_document.pdf");
+
                     break;
                 case "docx":
                     args.Add("--to=docx");
+                    _outFileName = MakeOutName("_document.docx");
+
                     break;
                 case "pptx":
                     // office: -reference-doc=
                     args.Add("--reference-doc=" + _config.PptxReference);
+                    _outFileName = MakeOutName("_slides.pptx");
+
                     break;
                 default:
                     throw new InvalidEnumArgumentException("type parameter should not be: " + _type);
@@ -140,7 +143,7 @@ namespace SlideCrafting.Crafting
 
             
             args.Add("-o");
-            args.Add(OutFileName); // dependent of generator
+            args.Add(_outFileName); // dependent of generator
 
             if (_type == "beamer")
             {
@@ -148,6 +151,12 @@ namespace SlideCrafting.Crafting
             }
 
             return args;
+        }
+
+        private string MakeOutName(string ending)
+        {
+            var filename = Path.GetFileName(_metaFile);
+            return Path.Combine(_config.DistFolder, filename.Substring(0, filename.Length - _config.IndexFilesExtension.Length) + ending);
         }
 
         private List<string> GetMetaDataArgs()
