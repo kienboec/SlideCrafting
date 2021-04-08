@@ -7,9 +7,8 @@ import yaml
 import datetime
 import json
 
-#########
-# config
-#########
+#region configs and parameters
+
 pandocApp = "pandoc"
 pdflatexApp = "pdflatex"
 baseDir = "/miktex/work/"
@@ -34,9 +33,9 @@ viewerHtml = '/miktex/work/slideCrafting/viewer/index.html'
 favicon = '/miktex/work/slideCrafting/viewer/favicon.ico'
 attemptsOnError = 3
 
-######
-# log
-######
+#endregion
+
+# region logger functions
 logFileHandler = open(logFile, 'w')
 
 def writeToLog(text):
@@ -72,15 +71,20 @@ def writeSuccessToLogAndScreen(text):
     writeSuccessToLog(text)
     writeSuccessToScreen(text)
 
+#endregion
+
+#region write welcome message
+
 writeToScreen("\n\n\n\n\n")
 writeToLogAndScreen("______________________________________________________")
 writeToLogAndScreen("")
 writeToLogAndScreen("Slide Crafting (started: " +  str(datetime.datetime.now()) + ")")
 writeToLogAndScreen("______________________________________________________")
 
-###################
-# read gen options
-###################
+#endregion
+
+#region read generation options
+
 def checkEnvValueSet(key, value):
     return key in os.environ and os.environ[key] == value
 
@@ -122,11 +126,9 @@ if(checkEnvValueSet("FILTER_PLANTUML", "1")):
     writeToLog("embedded plantuml requested")
     filters.append("pandoc-plantuml")
 
-########
-# clean
-########
-# - dist folder
-# - work folder
+#endregion
+
+#region clean work and archive dist folders 
 
 def rmdirExt(directory, removeOnlyContent, filesOnly):
     returnValue = True
@@ -186,16 +188,18 @@ if os.path.isdir(workFolder):
     time.sleep(0.1)
 writeToLog("work folder cleaned..." + workFolder)
 
-##########
-# viewer
-##########
+#endregion
+
+#region copy html viewer
+
 writeToLog("copy viewer")
 subprocess.call(["cp", viewerHtml, distFolder + "index.html"])
 subprocess.call(["cp", favicon, distFolder + "favicon.ico"])
 
-###############
-# pandoc-config
-###############
+#endregion
+
+#region register pandoc errors 
+
 # https://pandoc.org/MANUAL.html#exit-codes
 pandocErrors = {
     "0": "OK",
@@ -223,9 +227,11 @@ pandocErrors = {
     "97": "PandocCouldNotFindDataFileError",
     "99": "PandocResourceNotFound"
 }
-###########################################
-# take over data from src to work folder
-###########################################
+
+#endregion
+
+#region take over data from src to work folder
+
 # (needed because temp files are required
 # during the process and the src folder
 # is mounted as a read-only volume)
@@ -233,10 +239,10 @@ subprocess.call(["cp", "-r", originFolder, workFolder])
 time.sleep(0.1)
 writeToLog("work folder filled with source data...")
 
-#######################
-# search index files
-# (= projects)
-#######################
+#endregion
+
+#region search index files (= projects)
+
 topicsDict = {}
 exercises = {}
 version = {}
@@ -295,14 +301,15 @@ for file in sorted(os.listdir(workFolder)):
         writeToLog("   files: " + ", ".join(topicsDict[file]))
 
 writeToLog("searching for index files completed")
-###########################################
-# pre processing files in work folder
-###########################################
-# topicsDict -> check images and introduct $$res$$/
 
-###############
-# build config
-###############
+#endregion
+
+#region pre processing files in work folder
+# topicsDict -> check images and introduct $$res$$/
+#endregion
+
+#region write config to file and call update template
+
 themeArgs = []
 themeName = None
 if os.path.isdir(beamerTemplate):
@@ -337,6 +344,10 @@ if needToWriteConfig:
 else:
     writeToLog("config up to date...")
 
+#endregion
+
+#region define general pandoc args and filters
+
 pandocArgs = [
     # "--verbose",
     "--from=markdown+raw_tex+header_attributes+implicit_header_references+raw_attribute+inline_code_attributes+fancy_lists+line_blocks", 
@@ -370,16 +381,23 @@ for f in filters:
     filterArgs.append("--filter")
     filterArgs.append(f)
 
-########
-# build
-########
+#endregion 
+
+#region build-preparation
+
 os.chdir(workFolder)
 
 outputFileNames = []
 
 writeToLogAndScreen("----------------------------------------------")
 writeToLogAndScreen("start: " + str(datetime.datetime.now()))
+
+#endregion
+
 for fileName in sorted(topicsDict.keys()):
+
+    #region gather projectArgs
+
     pandocMetadataArg = "--metadata-file=" + workFolder + str(fileName)
     projectName = fileName[0:-9]
     
@@ -416,6 +434,10 @@ for fileName in sorted(topicsDict.keys()):
         "exercisesDocx": []
     }
 
+    #endregion
+    
+    #region gather exercise-build args
+
     for exercise in exercises[fileName]:
         exerciseName = exercise.split('.')[0].split('/')[-1]
         projectArgs["exercises"].append(
@@ -424,6 +446,8 @@ for fileName in sorted(topicsDict.keys()):
         projectArgs["exercisesDocx"].append(
             [pandocApp] + [exercise] + filterArgs + 
             ["--to=docx", "--reference-doc=" + docxReference, "-o", distFolder + exerciseName + "_exercise.docx"])
+    
+    #endregion
     
     for mode in projectArgs.keys():
         if mode in generationMethods:          
@@ -439,6 +463,8 @@ for fileName in sorted(topicsDict.keys()):
                     outputFileNames.append(outputFileName)    
                     executionResult = subprocess.run(commandArrOfGenMode, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
                     
+                    #region write std out and std err
+
                     if(len(executionResult.stdout) > 0):
                         first = True
                         for line in executionResult.stdout.splitlines():
@@ -468,7 +494,8 @@ for fileName in sorted(topicsDict.keys()):
                                 writeToLogAndScreen(" - " + patchedLine)
                                 #  -Unfortunately, the package koma-script could not be installed.
                                 # consider not to subtract 1 in attempts if a package could not be installed
-                        
+                    
+                    #endregion    
 
                     exitCode = str(executionResult.returncode)
                     exitCodeDescription = "error"
@@ -495,6 +522,10 @@ for fileName in sorted(topicsDict.keys()):
             
 writeToLogAndScreen("\n\nFiles created: " + ", ".join(outputFileNames))
 writeToScreen("\n\n")
+#endregion
+
+#region write files.json "index"-file
+
 outputFileNameFile = open(distFolder+"files.json","w")
 isFirst = True
 
@@ -508,5 +539,11 @@ for outputFileName in outputFileNames:
 outputFileNameFile.write("\n]")
 outputFileNameFile.close()
 
+#endregion
+
+#region cleanup (log)
+
 logFileHandler.close()
 time.sleep(0.1) 
+
+#endregion
