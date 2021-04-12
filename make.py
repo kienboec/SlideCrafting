@@ -7,7 +7,7 @@ import yaml
 import datetime
 import json
 
-#region configs and parameters
+#region configs, constants and parameters
 
 pandocApp = "pandoc"
 pdflatexApp = "pdflatex"
@@ -33,56 +33,39 @@ viewerHtml = '/miktex/work/slideCrafting/viewer/index.html'
 favicon = '/miktex/work/slideCrafting/viewer/favicon.ico'
 attemptsOnError = 3
 
-#endregion
+#region register pandoc errors 
 
-# region logger functions
-logFileHandler = open(logFile, 'w')
-
-def writeToLog(text):
-    logFileHandler.write(datetime.datetime.now().strftime("%H:%M:%S") + ": [INFO] " + text + "\n")
-    logFileHandler.flush()
-
-def writeErrorToLog(text):
-    logFileHandler.write(datetime.datetime.now().strftime("%H:%M:%S") + ": [ERRO] " + text + "\n")
-    logFileHandler.flush()
-
-def writeSuccessToLog(text):
-    logFileHandler.write(datetime.datetime.now().strftime("%H:%M:%S") + ": [SUCC] " + text + "\n")
-    logFileHandler.flush()
-
-def writeToScreen(text):
-    print(text)
-
-def writeErrorToScreen(text):
-    print('\033[91m' +text+ '\033[0m')
-    
-def writeSuccessToScreen(text):
-    print('\033[92m' +text+ '\033[0m')
-    
-def writeToLogAndScreen(text):
-    writeToLog(text)
-    writeToScreen(text)
-
-def writeErrorToLogAndScreen(text):
-    writeErrorToLog(text)
-    writeErrorToScreen(text)
-
-def writeSuccessToLogAndScreen(text):
-    writeSuccessToLog(text)
-    writeSuccessToScreen(text)
+# https://pandoc.org/MANUAL.html#exit-codes
+pandocErrors = {
+        "0": "OK",
+        "3": "PandocFailOnWarningError",
+        "4": "PandocAppError",
+        "5": "PandocTemplateError",
+        "6": "PandocOptionError",
+        "21": "PandocUnknownReaderError",
+        "22": "PandocUnknownWriterError",
+        "23": "PandocUnsupportedExtensionError",
+        "31": "PandocEpubSubdirectoryError",
+        "43": "PandocPDFError",
+        "47": "PandocPDFProgramNotFoundError",
+        "61": "PandocHttpError",
+        "62": "PandocShouldNeverHappenError",
+        "63": "PandocSomeError",
+        "64": "PandocParseError",
+        "65": "PandocParsecError",
+        "66": "PandocMakePDFError",
+        "67": "PandocSyntaxMapError",
+        "83": "PandocFilterError",
+        "91": "PandocMacroLoop",
+        "92": "PandocUTF8DecodingError",
+        "93": "PandocIpynbDecodingError",
+        "97": "PandocCouldNotFindDataFileError",
+        "99": "PandocResourceNotFound"
+}
 
 #endregion
 
-#region write welcome message
-
-writeToScreen("\n\n\n\n\n")
-writeToLogAndScreen("______________________________________________________")
-writeToLogAndScreen("")
-writeToLogAndScreen("Slide Crafting (started: " +  str(datetime.datetime.now()) + ")")
-writeToLogAndScreen("______________________________________________________")
-
 #endregion
-
 #region read generation options
 
 def checkEnvValueSet(key, value):
@@ -127,7 +110,52 @@ if(checkEnvValueSet("FILTER_PLANTUML", "1")):
     filters.append("pandoc-plantuml")
 
 #endregion
+#region logger functions
+logFileHandler = open(logFile, 'w')
 
+def writeToLog(text):
+    logFileHandler.write(datetime.datetime.now().strftime("%H:%M:%S") + ": [INFO] " + text + "\n")
+    logFileHandler.flush()
+
+def writeErrorToLog(text):
+    logFileHandler.write(datetime.datetime.now().strftime("%H:%M:%S") + ": [ERRO] " + text + "\n")
+    logFileHandler.flush()
+
+def writeSuccessToLog(text):
+    logFileHandler.write(datetime.datetime.now().strftime("%H:%M:%S") + ": [SUCC] " + text + "\n")
+    logFileHandler.flush()
+
+def writeToScreen(text):
+    print(text)
+
+def writeErrorToScreen(text):
+    print('\033[91m' +text+ '\033[0m')
+    
+def writeSuccessToScreen(text):
+    print('\033[92m' +text+ '\033[0m')
+    
+def writeToLogAndScreen(text):
+    writeToLog(text)
+    writeToScreen(text)
+
+def writeErrorToLogAndScreen(text):
+    writeErrorToLog(text)
+    writeErrorToScreen(text)
+
+def writeSuccessToLogAndScreen(text):
+    writeSuccessToLog(text)
+    writeSuccessToScreen(text)
+
+#endregion
+#region write start message
+
+writeToScreen("\n\n\n\n\n")
+writeToLogAndScreen("______________________________________________________")
+writeToLogAndScreen("")
+writeToLogAndScreen("Slide Crafting (started: " +  str(datetime.datetime.now()) + ")")
+writeToLogAndScreen("______________________________________________________")
+
+#endregion
 #region clean work and archive dist folders 
 
 def rmdirExt(directory, removeOnlyContent, filesOnly):
@@ -166,6 +194,7 @@ def archiveFiles(directory, archiveFolder):
                 except:
                     writeErrorToLogAndScreen(f"item can not be copied: {str(item)}")
 
+# dist / archive folder
 if os.path.isdir(distFolder):
     if not os.path.isdir(archiveFolder):
         os.mkdir(archiveFolder)
@@ -181,6 +210,7 @@ else:
     os.mkdir(archiveFolder)
 writeToLog("dist folder cleaned..." + distFolder)
 
+# work folder (copy of source for pre processing)
 if os.path.isdir(workFolder):
     if (not rmdirExt(workFolder, False, False)):
         writeErrorToLogAndScreen("work folder cleanup failed: stopped execution")
@@ -189,7 +219,6 @@ if os.path.isdir(workFolder):
 writeToLog("work folder cleaned..." + workFolder)
 
 #endregion
-
 #region copy html viewer
 
 writeToLog("copy viewer")
@@ -197,39 +226,6 @@ subprocess.call(["cp", viewerHtml, distFolder + "index.html"])
 subprocess.call(["cp", favicon, distFolder + "favicon.ico"])
 
 #endregion
-
-#region register pandoc errors 
-
-# https://pandoc.org/MANUAL.html#exit-codes
-pandocErrors = {
-    "0": "OK",
-    "3": "PandocFailOnWarningError",
-    "4": "PandocAppError",
-    "5": "PandocTemplateError",
-    "6": "PandocOptionError",
-    "21": "PandocUnknownReaderError",
-    "22": "PandocUnknownWriterError",
-    "23": "PandocUnsupportedExtensionError",
-    "31": "PandocEpubSubdirectoryError",
-    "43": "PandocPDFError",
-    "47": "PandocPDFProgramNotFoundError",
-    "61": "PandocHttpError",
-    "62": "PandocShouldNeverHappenError",
-    "63": "PandocSomeError",
-    "64": "PandocParseError",
-    "65": "PandocParsecError",
-    "66": "PandocMakePDFError",
-    "67": "PandocSyntaxMapError",
-    "83": "PandocFilterError",
-    "91": "PandocMacroLoop",
-    "92": "PandocUTF8DecodingError",
-    "93": "PandocIpynbDecodingError",
-    "97": "PandocCouldNotFindDataFileError",
-    "99": "PandocResourceNotFound"
-}
-
-#endregion
-
 #region take over data from src to work folder
 
 # (needed because temp files are required
@@ -240,8 +236,7 @@ time.sleep(0.1)
 writeToLog("work folder filled with source data...")
 
 #endregion
-
-#region search index files (= projects)
+#region search index files recursively (= projects)
 
 topicsDict = {}
 exercises = {}
@@ -303,11 +298,9 @@ for file in sorted(os.listdir(workFolder)):
 writeToLog("searching for index files completed")
 
 #endregion
-
 #region pre processing files in work folder
 # topicsDict -> check images and introduct $$res$$/
 #endregion
-
 #region write config to file and call update template
 
 themeArgs = []
@@ -345,7 +338,6 @@ else:
     writeToLog("config up to date...")
 
 #endregion
-
 #region define general pandoc args and filters
 
 pandocArgs = [
@@ -382,7 +374,6 @@ for f in filters:
     filterArgs.append(f)
 
 #endregion 
-
 #region build-preparation
 
 os.chdir(workFolder)
@@ -394,6 +385,7 @@ writeToLogAndScreen("start: " + str(datetime.datetime.now()))
 
 #endregion
 
+#foreach project
 for fileName in sorted(topicsDict.keys()):
 
     #region gather projectArgs
@@ -448,21 +440,27 @@ for fileName in sorted(topicsDict.keys()):
             ["--to=docx", "--reference-doc=" + docxReference, "-o", distFolder + exerciseName + "_exercise.docx"])
     
     #endregion
-    
+
+    # foreach mode in project    
     for mode in projectArgs.keys():
-        if mode in generationMethods:          
+        if mode in generationMethods:
+            
+            #region write headline     
             if len(generationMethods) > 1:
                 writeToLogAndScreen("----------------------------------------------")
                 writeToLogAndScreen("generation method: " + mode)
+            #endregion
             
             for commandArrOfGenMode in projectArgs[mode]:
                 exitCode = ""
                 attempt = 1
                 while exitCode != "0" and attempt <= attemptsOnError:
+                    
+                    #region execute
                     outputFileName = commandArrOfGenMode[commandArrOfGenMode.index('-o')+1]
                     outputFileNames.append(outputFileName)    
                     executionResult = subprocess.run(commandArrOfGenMode, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
-                    
+                    #endregion
                     #region write std out and std err
 
                     if(len(executionResult.stdout) > 0):
@@ -496,6 +494,7 @@ for fileName in sorted(topicsDict.keys()):
                                 # consider not to subtract 1 in attempts if a package could not be installed
                     
                     #endregion    
+                    #region interpret exit code
 
                     exitCode = str(executionResult.returncode)
                     exitCodeDescription = "error"
@@ -518,14 +517,15 @@ for fileName in sorted(topicsDict.keys()):
                             writeSuccessToLogAndScreen("file:" + outputFileName + " succeed, version: " + version[fileName]+ ", at: " + datetime.datetime.now().strftime("%H:%M:%S"))
                         
                     attempt += 1
+
+                    #endregion
     
             
+
+#region write summary and files.json "index"-file
+
 writeToLogAndScreen("\n\nFiles created: " + ", ".join(outputFileNames))
 writeToScreen("\n\n")
-#endregion
-
-#region write files.json "index"-file
-
 outputFileNameFile = open(distFolder+"files.json","w")
 isFirst = True
 
