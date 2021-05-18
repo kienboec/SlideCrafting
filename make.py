@@ -330,10 +330,13 @@ if needToWriteConfig:
     writeToLog("standard out: \n" + executionResult.stdout)
     writeToLog("standard err: \n" + executionResult.stderr)
 
-    f = open(configFile, "w")
-    f.write("template: " + themeName)
-    f.close()
-    writeToLog("wrote config")
+    if themeName is not None: 
+        f = open(configFile, "w")
+        f.write("template: " + themeName)
+        f.close()
+        writeToLog("wrote config")
+    else:
+        writeToLog("themeName invalid; did not wrote config")
 else:
     writeToLog("config up to date...")
 

@@ -33,6 +33,9 @@ RUN    apt-get update \
 RUN apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys D6BC243565B2087BC3F897C9277A7293F59E4889
 RUN echo "deb http://miktex.org/download/ubuntu focal universe" | tee /etc/apt/sources.list.d/miktex.list
 
+RUN apt-key adv --refresh-keys
+RUN apt-key adv --keyserver hkps://keyserver.ubuntu.com --refresh-keys
+
 RUN    apt-get update \
     && apt-get install -y --no-install-recommends \
            miktex
