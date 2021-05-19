@@ -66,6 +66,43 @@ pandocErrors = {
 #endregion
 
 #endregion
+#region logger functions
+logFileHandler = open(logFile, 'w')
+
+def writeToLog(text):
+    logFileHandler.write(datetime.datetime.now().strftime("%H:%M:%S") + ": [INFO] " + text + "\n")
+    logFileHandler.flush()
+
+def writeErrorToLog(text):
+    logFileHandler.write(datetime.datetime.now().strftime("%H:%M:%S") + ": [ERRO] " + text + "\n")
+    logFileHandler.flush()
+
+def writeSuccessToLog(text):
+    logFileHandler.write(datetime.datetime.now().strftime("%H:%M:%S") + ": [SUCC] " + text + "\n")
+    logFileHandler.flush()
+
+def writeToScreen(text):
+    print(text)
+
+def writeErrorToScreen(text):
+    print('\033[91m' +text+ '\033[0m')
+    
+def writeSuccessToScreen(text):
+    print('\033[92m' +text+ '\033[0m')
+    
+def writeToLogAndScreen(text):
+    writeToLog(text)
+    writeToScreen(text)
+
+def writeErrorToLogAndScreen(text):
+    writeErrorToLog(text)
+    writeErrorToScreen(text)
+
+def writeSuccessToLogAndScreen(text):
+    writeSuccessToLog(text)
+    writeSuccessToScreen(text)
+
+#endregion
 #region read generation options
 
 def checkEnvValueSet(key, value):
@@ -108,43 +145,6 @@ filters = []
 if(checkEnvValueSet("FILTER_PLANTUML", "1")):
     writeToLog("embedded plantuml requested")
     filters.append("pandoc-plantuml")
-
-#endregion
-#region logger functions
-logFileHandler = open(logFile, 'w')
-
-def writeToLog(text):
-    logFileHandler.write(datetime.datetime.now().strftime("%H:%M:%S") + ": [INFO] " + text + "\n")
-    logFileHandler.flush()
-
-def writeErrorToLog(text):
-    logFileHandler.write(datetime.datetime.now().strftime("%H:%M:%S") + ": [ERRO] " + text + "\n")
-    logFileHandler.flush()
-
-def writeSuccessToLog(text):
-    logFileHandler.write(datetime.datetime.now().strftime("%H:%M:%S") + ": [SUCC] " + text + "\n")
-    logFileHandler.flush()
-
-def writeToScreen(text):
-    print(text)
-
-def writeErrorToScreen(text):
-    print('\033[91m' +text+ '\033[0m')
-    
-def writeSuccessToScreen(text):
-    print('\033[92m' +text+ '\033[0m')
-    
-def writeToLogAndScreen(text):
-    writeToLog(text)
-    writeToScreen(text)
-
-def writeErrorToLogAndScreen(text):
-    writeErrorToLog(text)
-    writeErrorToScreen(text)
-
-def writeSuccessToLogAndScreen(text):
-    writeSuccessToLog(text)
-    writeSuccessToScreen(text)
 
 #endregion
 #region write start message
