@@ -7,25 +7,13 @@ The docker container in this repo is only needed to compile markdown files
 ## Start
 
 * create a folder to work in (see BASEFOLDER in code sample)
-* clone this repo into a subfolder "slidecrafting"
+* clone this repo as a submodule into a subfolder "slidecrafting"
 * create a second folder to work in e.g.: "KnowledgeBase"
 * (optional): create a folder structure "_templates/tex/latex/beamer/" and add a beamertheme-file with .sty extension to apply the theme automatically
-* build the docker container using "docker build"
+* build the docker container using "docker build" (Attention: there are problems using the WSL2 backend, please use the legacy HyperV backend)
 * run the docker container with mounted volumes (in and out)
 
-Sample (windows):
-```
-TITLE SlideCrafting
-SET BASEFOLDER=C:/repos
-cd %BASEFOLDER%
-
-docker stop slidecrafting-instance
-docker rm   slidecrafting-instance
-
-@mkdir slidecrafting\dist
-docker build -t slidecrafting-container:latest -f slidecrafting\Dockerfile .
-docker run --rm -ti --privileged -v %BASEFOLDER%/KnowledgeBase:/miktex/work/src:ro -v %BASEFOLDER%/slidecrafting/dist:/miktex/work/dist:rw -p 8080:8080/tcp --name slidecrafting-instance slidecrafting-container
-```
+a Sample can be found here: https://github.com/kienboec/SlideCraftingTestKnowledgeBase
 
 ### Integrated Viewer
 An integrated viewer is exposed on port 8080.
@@ -54,13 +42,4 @@ Shortcuts:
 ## Icons
 * Viewer-favicon: https://www.iconfinder.com/icons/272699/pdf_icon
 * General ico: https://www.iconfinder.com/icons/2527990/analytics_business_chart_display_media_presentation_projector_icon
-
-## Best Practice
-
-### Make Listings smaller
-in Beamer add header-includes
-```
-  - \usepackage{fvextra}
-  - \DefineVerbatimEnvironment{Highlighting}{Verbatim}{breaklines,commandchars=\\\{\},fontsize=\tiny}
-```
 
